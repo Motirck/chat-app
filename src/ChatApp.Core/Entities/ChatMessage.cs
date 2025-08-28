@@ -5,10 +5,9 @@ public class ChatMessage
     public int Id { get; set; }
     public string Content { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
-    public int UserId { get; set; }
+    public required string UserId { get; set; }
     public string Username { get; set; } = string.Empty;
-    public bool IsStockQuote { get; set; } = false;
+    public bool IsStockQuote { get; set; }
     
-    // Navigation properties
-    public virtual User User { get; set; } = null!;
+    public virtual ApplicationUser User { get; set; } = null!;
 }

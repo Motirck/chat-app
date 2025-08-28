@@ -17,39 +17,27 @@ public class ChatRepository : IChatRepository
     public async Task<IEnumerable<ChatMessage>> GetLastMessagesAsync(int count = 50)
     {
         return await _dbContext.ChatMessages
+            .Include(m => m.User)
             .OrderByDescending(m => m.Timestamp)
             .Take(count)
             .OrderBy(m => m.Timestamp)
             .ToListAsync();
     }
-
+    
     public async Task<ChatMessage> AddMessageAsync(ChatMessage message)
     {
         _dbContext.ChatMessages.Add(message);
         await _dbContext.SaveChangesAsync();
         return message;
     }
-
-    public async Task<User?> GetUserByUsernameAsync(string username)
+    
+    public async Task<ApplicationUser?> GetUserByUsernameAsync(string username)
     {
-        return await _dbContext.Users.FirstOrDefaultAsync(u => u.Username == username);
+        return await _dbContext.Users.FirstOrDefaultAsync(u => u.UserName == username);
     }
-
-    public async Task<User?> GetUserByIdAsync(int id)
+    
+    public async Task<ApplicationUser?> GetUserByIdAsync(string id)
     {
         return await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id);
-    }
-
-    public async Task<User> CreateUserAsync(User user)
-    {
-        _dbContext.Users.Add(user);
-        await _dbContext.SaveChangesAsync();
-        return user;
-    }
-
-    public async Task<bool> ValidateUserCredentialsAsync(string username, string passwordHash)
-    {
-        var user = await GetUserByUsernameAsync(username);
-        return user != null && user.PasswordHash == passwordHash && user.IsActive;
     }
 }
