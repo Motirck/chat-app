@@ -30,14 +30,4 @@ public class ChatRepository : IChatRepository
         await _dbContext.SaveChangesAsync();
         return message;
     }
-    
-    public async Task<ApplicationUser?> GetUserByUsernameAsync(string username)
-    {
-        return await _dbContext.Users.FirstOrDefaultAsync(u => u.UserName == username);
-    }
-    
-    public async Task<ApplicationUser?> GetUserByIdAsync(string id)
-    {
-        return await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id);
-    }
 }
