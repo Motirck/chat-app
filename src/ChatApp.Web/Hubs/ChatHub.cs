@@ -1,4 +1,5 @@
-﻿using ChatApp.Core.Entities;
+﻿
+using ChatApp.Core.Entities;
 using ChatApp.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -29,26 +30,33 @@ public class ChatHub : Hub
         _userManager = userManager;
         
         // Subscribe to stock quote responses if not already subscribed
-        InitializeStockQuoteSubscription();
+        _ = Task.Run(InitializeStockQuoteSubscriptionAsync);
     }
 
-    private void InitializeStockQuoteSubscription()
+    private async Task InitializeStockQuoteSubscriptionAsync()
     {
         if (_messageBroker == null) return;
         
         lock (SubscriptionLock)
         {
-            if (!_isSubscribed)
+            if (_isSubscribed) return;
+            _isSubscribed = true;
+        }
+
+        try
+        {
+            // Use the async version of Subscribe
+            await _messageBroker.SubscribeAsync<StockQuoteDto>(HandleStockQuoteResponseAsync);
+            Console.WriteLine("Successfully subscribed to stock quote responses");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to subscribe to stock quote responses: {ex.Message}");
+            
+            // Reset the flag so we can try again later
+            lock (SubscriptionLock)
             {
-                try
-                {
-                    _messageBroker.Subscribe<StockQuoteDto>(HandleStockQuoteResponseAsync);
-                    _isSubscribed = true;
-                }
-                catch (Exception)
-                {
-                    Console.WriteLine("Failed to subscribe to stock quote responses");
-                }
+                _isSubscribed = false;
             }
         }
     }

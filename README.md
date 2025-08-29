@@ -31,7 +31,7 @@ A modern, real-time chat application built with ASP.NET Core, SignalR, and Rabbi
 2. Run: `dotnet run --project src/ChatApp.Web`
 3. Open: `http://localhost:5281`
 
-### Start RabbitMQ in Docker
+### Start RabbitMQ in Docker (Use WSL on Windows)
 ```bash
 # Navigate to the project directory (root folder) and in a new terminal run:
 docker-compose up -d

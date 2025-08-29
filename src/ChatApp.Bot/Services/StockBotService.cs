@@ -28,10 +28,10 @@ public class StockBotService : BackgroundService
         try
         {
             // Subscribe to stock command messages using Core DTO
-            _messageBroker.Subscribe<StockCommandDto>(HandleStockCommandAsync);
-            
+            await _messageBroker.SubscribeAsync<StockCommandDto>(HandleStockCommandAsync);
+        
             _logger.LogInformation("Stock Bot is listening for stock commands...");
-            
+        
             // Start consuming messages
             _messageBroker.StartConsuming();
 
