@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
+using ChatApp.Core.Dtos;
 
 namespace ChatApp.Web.Hubs;
 
@@ -15,15 +16,69 @@ public class ChatHub : Hub
     private readonly UserManager<ApplicationUser> _userManager;
     
     // Static dictionary to track online users across all hub instances
-    private static readonly ConcurrentDictionary<string, string> _onlineUsers = new();
+    private static readonly ConcurrentDictionary<string, string> OnlineUsers = new();
+    
+    // Static flag to ensure we only subscribe once
+    private static bool _isSubscribed = false;
+    private static readonly Lock SubscriptionLock = new();
 
     public ChatHub(IChatRepository chatRepository, UserManager<ApplicationUser> userManager, IMessageBroker? messageBroker = null)
     {
         _chatRepository = chatRepository;
         _messageBroker = messageBroker;
         _userManager = userManager;
+        
+        // Subscribe to stock quote responses if not already subscribed
+        InitializeStockQuoteSubscription();
     }
-    
+
+    private void InitializeStockQuoteSubscription()
+    {
+        if (_messageBroker == null) return;
+        
+        lock (SubscriptionLock)
+        {
+            if (!_isSubscribed)
+            {
+                try
+                {
+                    _messageBroker.Subscribe<StockQuoteDto>(HandleStockQuoteResponseAsync);
+                    _isSubscribed = true;
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine("Failed to subscribe to stock quote responses");
+                }
+            }
+        }
+    }
+
+    private async Task HandleStockQuoteResponseAsync(StockQuoteDto stockQuote)
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(stockQuote.Quote))
+            {
+                var chatMessage = new ChatMessage
+                {
+                    Content = stockQuote.Quote,
+                    Username = "StockBot",
+                    UserId = "stock-bot", // Special ID for bot messages
+                    Timestamp = DateTime.UtcNow,
+                    IsStockQuote = true
+                };
+                
+                await _chatRepository.AddMessageAsync(chatMessage);
+                await Clients.All.SendAsync("ReceiveMessage", "StockBot", stockQuote.Quote, chatMessage.Timestamp);
+            }
+        }
+        catch (Exception e)
+        {
+            // Log error gracefully to not crash the hub
+            Console.WriteLine($"Error handling stock quote response: {e.Message}");
+        }
+    }
+
     public async Task SendMessage(string message)
     {
         var user = await GetCurrentUserAsync();
@@ -38,6 +93,10 @@ public class ChatHub : Hub
                 try
                 {
                     await _messageBroker.PublishStockCommandAsync(stockCode, user.UserName);
+                    
+                    // Acknowledge the command to the user
+                    await Clients.Caller.SendAsync("ReceiveMessage", "System", 
+                        $"📈 Looking up stock quote for {stockCode.ToUpper()}...", DateTime.UtcNow);
                 }
                 catch (Exception)
                 {
@@ -77,7 +136,7 @@ public class ChatHub : Hub
         await Groups.AddToGroupAsync(Context.ConnectionId, "ChatRoom");
         
         // Add user to online users list
-        _onlineUsers.TryAdd(Context.ConnectionId, user.UserName);
+        OnlineUsers.TryAdd(Context.ConnectionId, user.UserName);
         
         // Update user status in database
         user.IsOnline = true;
@@ -99,10 +158,10 @@ public class ChatHub : Hub
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         // Remove user from online users list
-        if (_onlineUsers.TryRemove(Context.ConnectionId, out var username))
+        if (OnlineUsers.TryRemove(Context.ConnectionId, out var username))
         {
             // Check if user has other connections
-            var hasOtherConnections = _onlineUsers.Values.Contains(username);
+            var hasOtherConnections = OnlineUsers.Values.Contains(username);
             
             if (!hasOtherConnections)
             {
@@ -135,6 +194,6 @@ public class ChatHub : Hub
     
     private static List<string> GetOnlineUsersList()
     {
-        return _onlineUsers.Values.Distinct().ToList();
+        return OnlineUsers.Values.Distinct().ToList();
     }
 }

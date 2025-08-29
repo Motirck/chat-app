@@ -7,4 +7,26 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Flurl.Http" Version="4.0.2" />
+      <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.8" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.8" />
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8" />
+      <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.8" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.8" />
+      <PackageReference Include="RabbitMQ.Client" Version="7.1.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\ChatApp.Core\ChatApp.Core.csproj" />
+      <ProjectReference Include="..\ChatApp.Infrastructure\ChatApp.Infrastructure.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="appsettings.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
+
 </Project>
