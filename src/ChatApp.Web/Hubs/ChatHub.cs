@@ -1,90 +1,30 @@
-﻿
-using ChatApp.Core.Entities;
+﻿using ChatApp.Core.Entities;
 using ChatApp.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
-using ChatApp.Core.Dtos;
 
 namespace ChatApp.Web.Hubs;
 
 [Authorize]
 public class ChatHub : Hub
 {
-    private readonly IChatRepository _chatRepository;
-    private readonly IMessageBroker? _messageBroker; // Make nullable
+    private readonly IServiceProvider _serviceProvider;
+    private readonly IMessageBroker? _messageBroker;
     private readonly UserManager<ApplicationUser> _userManager;
     
     // Static dictionary to track online users across all hub instances
     private static readonly ConcurrentDictionary<string, string> OnlineUsers = new();
-    
-    // Static flag to ensure we only subscribe once
-    private static bool _isSubscribed = false;
-    private static readonly Lock SubscriptionLock = new();
 
-    public ChatHub(IChatRepository chatRepository, UserManager<ApplicationUser> userManager, IMessageBroker? messageBroker = null)
+    public ChatHub(
+        IServiceProvider serviceProvider,
+        UserManager<ApplicationUser> userManager, 
+        IMessageBroker? messageBroker = null)
     {
-        _chatRepository = chatRepository;
+        _serviceProvider = serviceProvider;
         _messageBroker = messageBroker;
         _userManager = userManager;
-        
-        // Subscribe to stock quote responses if not already subscribed
-        _ = Task.Run(InitializeStockQuoteSubscriptionAsync);
-    }
-
-    private async Task InitializeStockQuoteSubscriptionAsync()
-    {
-        if (_messageBroker == null) return;
-        
-        lock (SubscriptionLock)
-        {
-            if (_isSubscribed) return;
-            _isSubscribed = true;
-        }
-
-        try
-        {
-            // Use the async version of Subscribe
-            await _messageBroker.SubscribeAsync<StockQuoteDto>(HandleStockQuoteResponseAsync);
-            Console.WriteLine("Successfully subscribed to stock quote responses");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Failed to subscribe to stock quote responses: {ex.Message}");
-            
-            // Reset the flag so we can try again later
-            lock (SubscriptionLock)
-            {
-                _isSubscribed = false;
-            }
-        }
-    }
-
-    private async Task HandleStockQuoteResponseAsync(StockQuoteDto stockQuote)
-    {
-        try
-        {
-            if (!string.IsNullOrEmpty(stockQuote.Quote))
-            {
-                var chatMessage = new ChatMessage
-                {
-                    Content = stockQuote.Quote,
-                    Username = "StockBot",
-                    UserId = "stock-bot", // Special ID for bot messages
-                    Timestamp = DateTime.UtcNow,
-                    IsStockQuote = true
-                };
-                
-                await _chatRepository.AddMessageAsync(chatMessage);
-                await Clients.All.SendAsync("ReceiveMessage", "StockBot", stockQuote.Quote, chatMessage.Timestamp);
-            }
-        }
-        catch (Exception e)
-        {
-            // Log error gracefully to not crash the hub
-            Console.WriteLine($"Error handling stock quote response: {e.Message}");
-        }
     }
 
     public async Task SendMessage(string message)
@@ -121,7 +61,10 @@ public class ChatHub : Hub
             return;
         }
 
-        // Regular chat message
+        // Regular chat message - use scoped repository
+        using var scope = _serviceProvider.CreateScope();
+        var chatRepository = scope.ServiceProvider.GetRequiredService<IChatRepository>();
+        
         var chatMessage = new ChatMessage
         {
             Content = message,
@@ -131,7 +74,7 @@ public class ChatHub : Hub
             IsStockQuote = false
         };
 
-        await _chatRepository.AddMessageAsync(chatMessage);
+        await chatRepository.AddMessageAsync(chatMessage);
         await Clients.All.SendAsync("ReceiveMessage", user.UserName, message, chatMessage.Timestamp);
     }
     
