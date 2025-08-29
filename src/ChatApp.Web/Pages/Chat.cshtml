@@ -23,13 +23,32 @@
                             <!-- Messages will be populated here via SignalR -->
                             @foreach (var message in Model.RecentMessages)
                             {
-                                <div class="message mb-2">
-                                    <div class="d-flex justify-content-between">
-                                        <strong class="text-primary">@message.Username</strong>
-                                        <small class="text-muted">@message.Timestamp.ToString("HH:mm")</small>
+                                @if (message.IsStockQuote && message.Username == "StockBot")
+                                {
+                                    <!-- Stock quote message with special styling -->
+                                    <div class="message mb-2 stock-quote">
+                                        <div class="d-flex justify-content-between">
+                                            <strong class="text-success">
+                                                <i class="fas fa-robot me-1"></i>@message.Username
+                                            </strong>
+                                            <small class="text-muted">@message.Timestamp.ToString("HH:mm")</small>
+                                        </div>
+                                        <div class="message-content alert alert-success py-1 px-2 mb-0 mt-1">
+                                            <i class="fas fa-chart-line me-1"></i>@message.Content
+                                        </div>
                                     </div>
-                                    <div class="message-content">@message.Content</div>
-                                </div>
+                                }
+                                else
+                                {
+                                    <!-- Regular message -->
+                                    <div class="message mb-2">
+                                        <div class="d-flex justify-content-between">
+                                            <strong class="text-primary">@message.Username</strong>
+                                            <small class="text-muted">@message.Timestamp.ToString("HH:mm")</small>
+                                        </div>
+                                        <div class="message-content">@message.Content</div>
+                                    </div>
+                                }
                             }
                         </div>
                     </div>
@@ -180,19 +199,19 @@
         });
 
         // Handle stock quotes
-        connection.on("ReceiveStockQuote", function (quote) {
+        connection.on("ReceiveStockQuote", function (username, quote, timestamp) {
             const messageDiv = document.createElement("div");
             messageDiv.className = "message mb-2 stock-quote";
-            
-            const time = new Date().toLocaleTimeString('en-US', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
+
+            const time = new Date(timestamp).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
             });
 
             messageDiv.innerHTML = `
                 <div class="d-flex justify-content-between">
                     <strong class="text-success">
-                        <i class="fas fa-robot me-1"></i>Stock Bot
+                        <i class="fas fa-robot me-1"></i>${escapeHtml(username)}
                     </strong>
                     <small class="text-muted">${time}</small>
                 </div>
