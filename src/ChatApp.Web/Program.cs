@@ -1,3 +1,4 @@
+
 using ChatApp.Core.Configuration;
 using ChatApp.Core.Entities;
 using ChatApp.Core.Interfaces;
@@ -37,6 +38,37 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 })
 .AddEntityFrameworkStores<ChatDbContext>();
 
+// Configure Identity paths
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/Account/Login";
+    options.LogoutPath = "/Account/Logout";
+    options.AccessDeniedPath = "/Account/AccessDenied";
+    options.SlidingExpiration = true;
+    options.ExpireTimeSpan = TimeSpan.FromHours(24);
+});
+
+// Add authorization policy
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
+// Configure Razor Pages with specific authorization
+builder.Services.AddRazorPages(options =>
+{
+    // Allow anonymous access to specific pages
+    options.Conventions.AllowAnonymousToPage("/Index");
+    options.Conventions.AllowAnonymousToPage("/Privacy");
+    options.Conventions.AllowAnonymousToPage("/Error");
+    options.Conventions.AllowAnonymousToFolder("/Account");
+    
+    // Require authentication for other pages
+    options.Conventions.AuthorizePage("/Chat");
+});
+
 // Add configuration
 builder.Services.Configure<StockApiOptions>(
     builder.Configuration.GetSection(StockApiOptions.SectionName));
@@ -61,7 +93,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
-app.UseAuthentication(); // Add authentication
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapRazorPages();
