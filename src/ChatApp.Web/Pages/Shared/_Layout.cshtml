@@ -1,52 +1,130 @@
-﻿<!DOCTYPE html>
+﻿
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>@ViewData["Title"] - ChatApp.Web</title>
-    <script type="importmap"></script>
+    <title>@ViewData["Title"] - ChatApp</title>
+    
+    <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css"/>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
     <link rel="stylesheet" href="~/ChatApp.Web.styles.css" asp-append-version="true"/>
 </head>
+
 <body>
 <header>
-    <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
         <div class="container">
-            <a class="navbar-brand" asp-area="" asp-page="/Index">ChatApp.Web</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                    aria-expanded="false" aria-label="Toggle navigation">
+            <!-- Brand -->
+            <a class="navbar-brand fw-bold" asp-page="/Index">
+                <i class="fas fa-comments me-2"></i>ChatApp
+            </a>
+            
+            <!-- Mobile toggle -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                <ul class="navbar-nav flex-grow-1">
+            
+            <!-- Navigation -->
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <!-- Navigation section - replace the existing nav section -->
+                <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
+                        <a class="nav-link" asp-page="/Index">
+                            <i class="fas fa-home me-1"></i>Home
+                        </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
-                    </li>
+    
+                    @if (SignInManager.IsSignedIn(User))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" asp-page="/Chat">
+                                <i class="fas fa-comments me-1"></i>Chat Room
+                            </a>
+                        </li>
+                    }
+                </ul>
+                
+                <!-- User menu -->
+                <ul class="navbar-nav">
+                    @if (SignInManager.IsSignedIn(User))
+                    {
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" 
+                               data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user me-1"></i>@UserManager.GetUserName(User)
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="#">
+                                        <i class="fas fa-user-cog me-2"></i>Profile
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form method="post" asp-page="/Account/Logout" class="d-inline">
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </li>
+                    }
+                    else
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" asp-page="/Account/Login">
+                                <i class="fas fa-sign-in-alt me-1"></i>Login
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-page="/Account/Register">
+                                <i class="fas fa-user-plus me-1"></i>Register
+                            </a>
+                        </li>
+                    }
                 </ul>
             </div>
         </div>
     </nav>
 </header>
-<div class="container">
-    <main role="main" class="pb-3">
-        @RenderBody()
-    </main>
-</div>
 
-<footer class="border-top footer text-muted">
+<!-- Main content -->
+<main class="container-fluid px-0">
+    @RenderBody()
+</main>
+
+<!-- Footer -->
+<footer class="bg-light border-top mt-5 py-4">
     <div class="container">
-        &copy; 2025 - ChatApp.Web - <a asp-area="" asp-page="/Privacy">Privacy</a>
+        <div class="row">
+            <div class="col-md-6">
+                <p class="text-muted mb-0">
+                    &copy; 2025 ChatApp - Real-time chat with stock quotes
+                </p>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <small class="text-muted">
+                    <i class="fas fa-code me-1"></i>Built with .NET 9 & SignalR
+                </small>
+            </div>
+        </div>
     </div>
 </footer>
 
+<!-- Scripts -->
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
 <script src="~/js/site.js" asp-append-version="true"></script>
 
 @await RenderSectionAsync("Scripts", required: false)
+
 </body>
 </html>

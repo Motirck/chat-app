@@ -1,26 +1,133 @@
 ﻿@page
 @model ErrorModel
 @{
-    ViewData["Title"] = "Error";
+    ViewData["Title"] = "Error - ChatApp";
+    Layout = "~/Pages/Shared/_Layout.cshtml";
 }
 
-<h1 class="text-danger">Error.</h1>
-<h2 class="text-danger">An error occurred while processing your request.</h2>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="text-center">
+                <!-- Error Icon -->
+                <div class="mb-4">
+                    <i class="fas fa-exclamation-triangle text-warning" style="font-size: 4rem;"></i>
+                </div>
 
-@if (Model.ShowRequestId)
+                <!-- Error Title -->
+                <h1 class="display-4 text-danger mb-3">
+                    @if (Model.StatusCode.HasValue)
+                    {
+                        @($"Error {Model.StatusCode}")
+                    }
+                    else
+                    {
+                        @("Oops! Something went wrong")
+                    }
+                </h1>
+
+                <!-- Error Message -->
+                <h2 class="h4 text-muted mb-4">@Model.ErrorMessage</h2>
+
+                <!-- Actions -->
+                <div class="mb-4">
+                    <a href="/" class="btn btn-primary me-2">
+                        <i class="fas fa-home me-1"></i>
+                        Go Home
+                    </a>
+                    
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <a href="/Chat" class="btn btn-outline-primary">
+                            <i class="fas fa-comments me-1"></i>
+                            Go to Chat
+                        </a>
+                    }
+                    else
+                    {
+                        <a href="/Account/Login" class="btn btn-outline-primary">
+                            <i class="fas fa-sign-in-alt me-1"></i>
+                            Sign In
+                        </a>
+                    }
+                </div>
+
+                <!-- Request ID for developers -->
+                @if (Model.ShowRequestId)
+                {
+                    <div class="alert alert-light" role="alert">
+                        <small class="text-muted">
+                            <strong>Request ID:</strong> 
+                            <code>@Model.RequestId</code>
+                        </small>
+                    </div>
+                }
+
+                <!-- Development environment info -->
+                @if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
+                {
+                    <div class="alert alert-info mt-4" role="alert">
+                        <h5 class="alert-heading">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Development Mode
+                        </h5>
+                        <p class="mb-2">
+                            You're seeing this detailed error information because the application is running in 
+                            <strong>Development</strong> environment.
+                        </p>
+                        <hr>
+                        <p class="mb-0">
+                            <small>
+                                <strong>Note:</strong> Detailed error information should not be displayed in production 
+                                environments for security reasons.
+                            </small>
+                        </p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Common ChatApp specific errors -->
+@if (Model.StatusCode == 404)
 {
-    <p>
-        <strong>Request ID:</strong> <code>@Model.RequestId</code>
-    </p>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Looking for something specific?</h5>
+                        <p class="card-text">Here are some popular pages in ChatApp:</p>
+                        <div class="d-grid gap-2">
+                            <a href="/" class="btn btn-outline-secondary btn-sm">Home Page</a>
+                            @if (User.Identity?.IsAuthenticated == true)
+                            {
+                                <a href="/Chat" class="btn btn-outline-secondary btn-sm">Chat Room</a>
+                            }
+                            else
+                            {
+                                <a href="/Account/Login" class="btn btn-outline-secondary btn-sm">Login</a>
+                                <a href="/Account/Register" class="btn btn-outline-secondary btn-sm">Register</a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 }
 
-<h3>Development Mode</h3>
-<p>
-    Swapping to the <strong>Development</strong> environment displays detailed information about the error that occurred.
-</p>
-<p>
-    <strong>The Development environment shouldn't be enabled for deployed applications.</strong>
-    It can result in displaying sensitive information from exceptions to end users.
-    For local debugging, enable the <strong>Development</strong> environment by setting the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>
-    and restarting the app.
-</p>
+@section Scripts {
+    <script>
+        // Auto-redirect after 30 seconds for certain errors
+        @if (Model.StatusCode == 401)
+        {
+            <text>
+            setTimeout(function() {
+                window.location.href = '/Account/Login';
+            }, 30000);
+            </text>
+        }
+    </script>
+}
