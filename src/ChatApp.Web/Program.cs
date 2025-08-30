@@ -80,6 +80,13 @@ builder.Services.AddScoped<IChatRepository, ChatRepository>();
 builder.Services.AddSingleton<IMessageBroker, RabbitMqMessageBroker>();
 builder.Services.AddScoped<IStockService, StockService>();
 
+// Register broadcaster implementation (Web layer)
+builder.Services.AddScoped<IStockQuoteBroadcaster, SignalRStockQuoteBroadcaster>();
+
+// Register background service (Infrastructure layer)
+builder.Services.AddHostedService<StockQuoteHandlerService>();
+
+
 var app = builder.Build();
 
 // Configure pipeline
@@ -99,11 +106,47 @@ app.UseAuthorization();
 app.MapRazorPages();
 app.MapHub<ChatHub>("/chatHub");
 
-// Ensure database is created and updated
+// Ensure database is created and seeded
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ChatDbContext>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    
     context.Database.EnsureCreated();
+    
+    // Create bot user if it doesn't exist
+    await EnsureBotUserExists(userManager);
 }
 
 app.Run();
+
+static async Task EnsureBotUserExists(UserManager<ApplicationUser> userManager)
+{
+    const string botUsername = "StockBot";
+    const string botEmail = "stockbot@chatapp.system";
+    
+    var botUser = await userManager.FindByNameAsync(botUsername);
+    if (botUser == null)
+    {
+        botUser = new ApplicationUser
+        {
+            UserName = botUsername,
+            Email = botEmail,
+            EmailConfirmed = true,
+            IsOnline = false,
+            CreatedAt = DateTime.UtcNow
+        };
+        
+        // Create the bot user without a password (system account)
+        var result = await userManager.CreateAsync(botUser);
+        
+        if (result.Succeeded)
+        {
+            Console.WriteLine("Bot user 'StockBot' created successfully.");
+        }
+        else
+        {
+            Console.WriteLine($"Failed to create bot user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+        }
+    }
+}

@@ -20,7 +20,7 @@ public class StockBotService : BackgroundService
         _stockService = stockService;
         _logger = logger;
     }
-    
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("Stock Bot Service started at: {time}", DateTimeOffset.Now);
@@ -29,9 +29,9 @@ public class StockBotService : BackgroundService
         {
             // Subscribe to stock command messages using Core DTO
             await _messageBroker.SubscribeAsync<StockCommandDto>(HandleStockCommandAsync);
-        
+
             _logger.LogInformation("Stock Bot is listening for stock commands...");
-        
+
             // Start consuming messages
             _messageBroker.StartConsuming();
 
@@ -53,18 +53,20 @@ public class StockBotService : BackgroundService
         }
     }
 
-    /// <summary>
-    /// Handles incoming stock command messages by fetching quotes and publishing responses
-    /// </summary>
     private async Task HandleStockCommandAsync(StockCommandDto command)
     {
         try
         {
+            _logger.LogInformation($"DEBUG: Bot received stock command: {command.StockCode} from user: {command.Username}");
+
             _logger.LogInformation("Processing stock command: {StockCode} for user: {Username}",
                 command.StockCode, command.Username);
 
             // Fetch stock quote using the existing service
+            _logger.LogInformation($"DEBUG: Calling StockService for {command.StockCode}...");
             var quoteResult = await _stockService.GetStockQuoteAsync(command.StockCode);
+            _logger.LogInformation($"DEBUG: StockService returned: {quoteResult}");
+
             string quoteMessage;
             if (!string.IsNullOrEmpty(quoteResult))
             {
@@ -79,15 +81,21 @@ public class StockBotService : BackgroundService
                 _logger.LogWarning("No quote found for stock code: {StockCode}", command.StockCode);
             }
 
+            _logger.LogInformation($"DEBUG: Publishing quote response: {quoteMessage}");
+
             // Publish the response back to the chat using Core DTO
             await _messageBroker.PublishStockQuoteAsync(command.StockCode, quoteMessage, command.Username);
+
+            _logger.LogInformation($"DEBUG: Quote response published successfully!");
 
             _logger.LogInformation("Published stock quote response for {StockCode} to user {Username}",
                 command.StockCode, command.Username);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing stock command for {StockCode} by user {Username}", 
+            _logger.LogInformation($"DEBUG: Error in HandleStockCommandAsync: {ex.Message}");
+
+            _logger.LogError(ex, "Error processing stock command for {StockCode} by user {Username}",
                 command.StockCode, command.Username);
 
             // Send error message to chat
@@ -104,11 +112,11 @@ public class StockBotService : BackgroundService
             }
         }
     }
-    
+
     public override async Task StopAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("Stock Bot Service is stopping...");
-        
+
         try
         {
             _messageBroker.StopConsuming();
