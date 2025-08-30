@@ -146,6 +146,43 @@
         const usersList = document.getElementById("usersList");
         const userCount = document.getElementById("userCount");
         const currentUser = "@UserManager.GetUserName(User)";
+        let typingTimer;
+        let isTyping = false;
+        const typingIndicator = document.createElement("div");
+        typingIndicator.id = "typingIndicator";
+        typingIndicator.className = "text-muted small mb-2";
+        typingIndicator.style.display = "none";
+
+        document.querySelector('.card-footer').insertBefore(typingIndicator, document.querySelector('.input-group'));
+
+        // Typing users management
+        let typingUsers = new Set();
+
+        function updateTypingIndicator(username, isTyping) {
+            if (isTyping) {
+                typingUsers.add(username);
+            } else {
+                typingUsers.delete(username);
+            }
+
+            if (typingUsers.size === 0) {
+                typingIndicator.style.display = "none";
+            } else {
+                const userList = Array.from(typingUsers);
+                let text;
+
+                if (userList.length === 1) {
+                    text = `${userList[0]} is typing...`;
+                } else if (userList.length === 2) {
+                    text = `${userList[0]} and ${userList[1]} are typing...`;
+                } else {
+                    text = `${userList.slice(0, -1).join(", ")} and ${userList[userList.length - 1]} are typing...`;
+                }
+
+                typingIndicator.innerHTML = `<i class="fas fa-keyboard me-1"></i>${text}`;
+                typingIndicator.style.display = "block";
+            }
+        }
 
         // Start SignalR connection
         connection.start().then(function () {
@@ -224,15 +261,31 @@
             scrollToBottom();
         });
 
+        // Handle typing notifications
+        connection.on("UserTyping", function (username) {
+            updateTypingIndicator(username, true);
+        });
+
+        connection.on("UserStoppedTyping", function (username) {
+            updateTypingIndicator(username, false);
+        });
+
         // Send message function
         function sendMessage() {
             const message = messageInput.value.trim();
             if (message) {
+                // Clear typing indicator immediately
+                clearTimeout(typingTimer);
+                if (isTyping) {
+                    isTyping = false;
+                    connection.invoke("UserStoppedTyping");
+                }
+
                 connection.invoke("SendMessage", message);
                 messageInput.value = "";
             }
         }
-
+        
         // Update online users list
         function updateOnlineUsersList(users) {
             usersList.innerHTML = '';
@@ -261,6 +314,20 @@
             if (e.key === "Enter") {
                 sendMessage();
             }
+        });
+
+        // Handle typing events
+        messageInput.addEventListener("input", function() {
+            if (!isTyping) {
+                isTyping = true;
+                connection.invoke("UserTyping");
+            }
+
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(() => {
+                isTyping = false;
+                connection.invoke("UserStoppedTyping");
+            }, 1000); // Stop typing after 1 second of inactivity
         });
 
         // Helper functions

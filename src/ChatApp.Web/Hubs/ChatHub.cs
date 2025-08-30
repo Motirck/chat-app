@@ -99,6 +99,24 @@ public class ChatHub : Hub
         // Send updated online users list to all clients
         await Clients.Group("ChatRoom").SendAsync("UpdateOnlineUsers", GetOnlineUsersList());
     }
+    
+    public async Task UserTyping()
+    {
+        var user = await GetCurrentUserAsync();
+        if (user?.UserName == null) return;
+
+        // Notify all other users (not the sender) that this user is typing
+        await Clients.Others.SendAsync("UserTyping", user.UserName);
+    }
+
+    public async Task UserStoppedTyping()
+    {
+        var user = await GetCurrentUserAsync();
+        if (user?.UserName == null) return;
+
+        // Notify all other users that this user stopped typing
+        await Clients.Others.SendAsync("UserStoppedTyping", user.UserName);
+    }
 
     public override async Task OnConnectedAsync()
     {
