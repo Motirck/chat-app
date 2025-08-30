@@ -1,5 +1,7 @@
 # ChatApp - .NET Real-time Chat Application
 
+# ⚠️📌 For a full architecture overview and developer guide, see docs/ARCHITECTURE.md. ⚠️📌
+
 A modern, real-time chat application built with ASP.NET Core, SignalR, and RabbitMQ featuring live messaging, user authentication with Identity, and stock quote integration.
 
 ## 🚀 Features
@@ -19,7 +21,6 @@ A modern, real-time chat application built with ASP.NET Core, SignalR, and Rabbi
 - **Broadcast responses** to all users in the chat
 - **Graceful degradation** if external services unavailable
 
-## 🏗️ Architecture
 ## Setup Instructions
 
 ### Prerequisites
@@ -58,9 +59,3 @@ docker-compose up -d
 ✅ Online user tracking
 ✅ Message history
 ✅ Broadcast Stock Quote to all online users
-
-
-Web App (ASP.NET Core) ↔ RabbitMQ ↔ Bot (Console App)
-      ↓                              ↓
-   Users chat                    Processes stock
-   Stock commands                API requests
