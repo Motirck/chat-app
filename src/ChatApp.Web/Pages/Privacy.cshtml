@@ -4,220 +4,202 @@
     ViewData["Title"] = "Privacy Policy";
 }
 
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header">
-                    <h1 class="mb-0">
-                        <i class="fas fa-shield-alt me-2 text-primary"></i>
-                        Privacy Policy
-                    </h1>
-                </div>
-                <div class="card-body">
-                    <p class="lead text-muted mb-4">
-                        Last updated: <strong>January 2025</strong>
-                    </p>
+<div class="max-w-4xl mx-auto">
+    <div class="rounded-xl border border-gray-200 bg-white shadow dark:border-gray-700 dark:bg-gray-800">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h1 class="m-0 text-2xl font-semibold flex items-center gap-2">
+                <i class="fas fa-shield-alt text-blue-600 dark:text-blue-400"></i>
+                Privacy Policy
+            </h1>
+        </div>
+        <div class="p-6">
+            <p class="text-gray-600 dark:text-gray-300 mb-4">
+                Last updated: <strong>January 2025</strong>
+            </p>
 
-                    <div class="alert alert-info" role="alert">
-                        <i class="fas fa-info-circle me-2"></i>
-                        This privacy policy explains how ChatApp collects, uses, and protects your information.
+            <div class="rounded-md bg-blue-50 text-blue-800 px-4 py-3 mb-6 dark:bg-blue-900/30 dark:text-blue-200" role="alert">
+                <i class="fas fa-info-circle mr-2"></i>
+                This privacy policy explains how ChatApp collects, uses, and protects your information.
+            </div>
+
+            <!-- Information We Collect -->
+            <section class="mb-8">
+                <h2 class="text-xl font-semibold mb-3 flex items-center gap-2">
+                    <i class="fas fa-database text-blue-600 dark:text-blue-400"></i>
+                    Information We Collect
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h5 class="font-medium mb-2">Account Information</h5>
+                        <ul class="space-y-1">
+                            <li><i class="fas fa-check text-green-600 mr-2"></i>Username</li>
+                            <li><i class="fas fa-check text-green-600 mr-2"></i>Email address</li>
+                            <li><i class="fas fa-check text-green-600 mr-2"></i>Password (encrypted)</li>
+                            <li><i class="fas fa-check text-green-600 mr-2"></i>Account creation date</li>
+                        </ul>
                     </div>
+                    <div>
+                        <h5 class="font-medium mb-2">Chat Data</h5>
+                        <ul class="space-y-1">
+                            <li><i class="fas fa-check text-green-600 mr-2"></i>Chat messages</li>
+                            <li><i class="fas fa-check text-green-600 mr-2"></i>Message timestamps</li>
+                            <li><i class="fas fa-check text-green-600 mr-2"></i>Stock quote requests</li>
+                            <li><i class="fas fa-check text-green-600 mr-2"></i>Online/offline status</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
 
-                    <!-- Information We Collect -->
-                    <section class="mb-5">
-                        <h2 class="h4 mb-3">
-                            <i class="fas fa-database me-2 text-primary"></i>
-                            Information We Collect
-                        </h2>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h5>Account Information</h5>
-                                <ul class="list-unstyled">
-                                    <li><i class="fas fa-check text-success me-2"></i>Username</li>
-                                    <li><i class="fas fa-check text-success me-2"></i>Email address</li>
-                                    <li><i class="fas fa-check text-success me-2"></i>Password (encrypted)</li>
-                                    <li><i class="fas fa-check text-success me-2"></i>Account creation date</li>
-                                </ul>
-                            </div>
-                            <div class="col-md-6">
-                                <h5>Chat Data</h5>
-                                <ul class="list-unstyled">
-                                    <li><i class="fas fa-check text-success me-2"></i>Chat messages</li>
-                                    <li><i class="fas fa-check text-success me-2"></i>Message timestamps</li>
-                                    <li><i class="fas fa-check text-success me-2"></i>Stock quote requests</li>
-                                    <li><i class="fas fa-check text-success me-2"></i>Online/offline status</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- How We Use Information -->
-                    <section class="mb-5">
-                        <h2 class="h4 mb-3">
-                            <i class="fas fa-cogs me-2 text-primary"></i>
-                            How We Use Your Information
-                        </h2>
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="alert alert-light border">
-                                    <h6><i class="fas fa-comments me-2"></i>Chat Functionality</h6>
-                                    <p class="mb-0">
-                                        We use your information to provide real-time chat services, display messages, 
-                                        and show user status to other participants.
-                                    </p>
-                                </div>
-                                <div class="alert alert-light border">
-                                    <h6><i class="fas fa-chart-line me-2"></i>Stock Quotes</h6>
-                                    <p class="mb-0">
-                                        Stock quote requests are processed to provide real-time market data through 
-                                        our bot service using external APIs.
-                                    </p>
-                                </div>
-                                <div class="alert alert-light border">
-                                    <h6><i class="fas fa-user-shield me-2"></i>Account Security</h6>
-                                    <p class="mb-0">
-                                        Your login credentials are used for authentication and account security. 
-                                        Passwords are securely hashed and never stored in plain text.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Data Storage -->
-                    <section class="mb-5">
-                        <h2 class="h4 mb-3">
-                            <i class="fas fa-server me-2 text-primary"></i>
-                            Data Storage & Security
-                        </h2>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="card bg-light">
-                                    <div class="card-body">
-                                        <h6><i class="fas fa-lock me-2"></i>Local Storage</h6>
-                                        <p class="small mb-0">
-                                            Your data is stored locally in our SQLite database with appropriate security measures.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card bg-light">
-                                    <div class="card-body">
-                                        <h6><i class="fas fa-shield-alt me-2"></i>Encryption</h6>
-                                        <p class="small mb-0">
-                                            All passwords are hashed using industry-standard encryption methods.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Third-Party Services -->
-                    <section class="mb-5">
-                        <h2 class="h4 mb-3">
-                            <i class="fas fa-external-link-alt me-2 text-primary"></i>
-                            Third-Party Services
-                        </h2>
-                        <div class="alert alert-warning" role="alert">
-                            <h6><i class="fas fa-exclamation-triangle me-2"></i>Stock Data Provider</h6>
-                            <p class="mb-0">
-                                We use <strong>Stooq.com</strong> to provide stock quote information. 
-                                Stock symbol requests may be sent to their API. Please review their privacy policy 
-                                for information on how they handle data.
-                            </p>
-                        </div>
-                    </section>
-
-                    <!-- Your Rights -->
-                    <section class="mb-5">
-                        <h2 class="h4 mb-3">
-                            <i class="fas fa-user-check me-2 text-primary"></i>
-                            Your Rights
-                        </h2>
-                        <div class="row">
-                            <div class="col-12">
-                                <p>You have the right to:</p>
-                                <ul>
-                                    <li><strong>Access</strong> your personal data</li>
-                                    <li><strong>Correct</strong> inaccurate personal data</li>
-                                    <li><strong>Delete</strong> your account and associated data</li>
-                                    <li><strong>Export</strong> your chat history</li>
-                                    <li><strong>Withdraw consent</strong> for data processing</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Data Retention -->
-                    <section class="mb-5">
-                        <h2 class="h4 mb-3">
-                            <i class="fas fa-calendar-alt me-2 text-primary"></i>
-                            Data Retention
-                        </h2>
-                        <div class="alert alert-info" role="alert">
-                            <p class="mb-2"><strong>Chat Messages:</strong> Stored indefinitely for chat history functionality</p>
-                            <p class="mb-2"><strong>Account Data:</strong> Retained while your account is active</p>
-                            <p class="mb-0"><strong>Logs:</strong> System logs are retained for 30 days for troubleshooting</p>
-                        </div>
-                    </section>
-
-                    <!-- Contact Information -->
-                    <section class="mb-4">
-                        <h2 class="h4 mb-3">
-                            <i class="fas fa-envelope me-2 text-primary"></i>
-                            Contact Us
-                        </h2>
-                        <p>
-                            If you have any questions about this privacy policy or your personal data, 
-                            please contact us:
+            <!-- How We Use Information -->
+            <section class="mb-8">
+                <h2 class="text-xl font-semibold mb-3 flex items-center gap-2">
+                    <i class="fas fa-cogs text-blue-600 dark:text-blue-400"></i>
+                    How We Use Your Information
+                </h2>
+                <div class="space-y-3">
+                    <div class="rounded-md border border-gray-200 px-4 py-3 dark:border-gray-700">
+                        <h6 class="font-semibold"><i class="fas fa-comments mr-2"></i>Chat Functionality</h6>
+                        <p class="mb-0 text-gray-600 dark:text-gray-300">
+                            We use your information to provide real-time chat services, display messages, 
+                            and show user status to other participants.
                         </p>
-                        <div class="alert alert-light border">
-                            <p class="mb-1"><strong>Email:</strong> privacy@chatapp.com</p>
-                            <p class="mb-0"><strong>Response Time:</strong> We aim to respond within 48 hours</p>
-                        </div>
-                    </section>
-
-                    <!-- Development Notice -->
-                    @if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
-                    {
-                        <div class="alert alert-warning" role="alert">
-                            <h6><i class="fas fa-code me-2"></i>Development Environment Notice</h6>
-                            <p class="mb-0">
-                                This is a development/demo version of ChatApp. In a production environment, 
-                                additional security measures and privacy controls would be implemented.
-                            </p>
-                        </div>
-                    }
-
-                </div>
-                <div class="card-footer bg-light">
-                    <div class="row align-items-center">
-                        <div class="col-md-6">
-                            <small class="text-muted">
-                                <i class="fas fa-calendar me-1"></i>
-                                Last updated: January 2025
-                            </small>
-                        </div>
-                        <div class="col-md-6 text-md-end">
-                            @if (User.Identity?.IsAuthenticated == true)
-                            {
-                                <a href="/Chat" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-comments me-1"></i>
-                                    Back to Chat
-                                </a>
-                            }
-                            else
-                            {
-                                <a href="/" class="btn btn-outline-primary btn-sm">
-                                    <i class="fas fa-home me-1"></i>
-                                    Back to Home
-                                </a>
-                            }
-                        </div>
                     </div>
+                    <div class="rounded-md border border-gray-200 px-4 py-3 dark:border-gray-700">
+                        <h6 class="font-semibold"><i class="fas fa-chart-line mr-2"></i>Stock Quotes</h6>
+                        <p class="mb-0 text-gray-600 dark:text-gray-300">
+                            Stock quote requests are processed to provide real-time market data through 
+                            our bot service using external APIs.
+                        </p>
+                    </div>
+                    <div class="rounded-md border border-gray-200 px-4 py-3 dark:border-gray-700">
+                        <h6 class="font-semibold"><i class="fas fa-user-shield mr-2"></i>Account Security</h6>
+                        <p class="mb-0 text-gray-600 dark:text-gray-300">
+                            Your login credentials are used for authentication and account security. 
+                            Passwords are securely hashed and never stored in plain text.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Data Storage -->
+            <section class="mb-8">
+                <h2 class="text-xl font-semibold mb-3 flex items-center gap-2">
+                    <i class="fas fa-server text-blue-600 dark:text-blue-400"></i>
+                    Data Storage & Security
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="rounded-md bg-gray-50 dark:bg-gray-900/40 p-4">
+                        <h6 class="font-semibold"><i class="fas fa-lock mr-2"></i>Local Storage</h6>
+                        <p class="text-sm text-gray-600 dark:text-gray-300 mb-0">
+                            Your data is stored locally in our SQLite database with appropriate security measures.
+                        </p>
+                    </div>
+                    <div class="rounded-md bg-gray-50 dark:bg-gray-900/40 p-4">
+                        <h6 class="font-semibold"><i class="fas fa-shield-alt mr-2"></i>Encryption</h6>
+                        <p class="text-sm text-gray-600 dark:text-gray-300 mb-0">
+                            All passwords are hashed using industry-standard encryption methods.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Third-Party Services -->
+            <section class="mb-8">
+                <h2 class="text-xl font-semibold mb-3 flex items-center gap-2">
+                    <i class="fas fa-external-link-alt text-blue-600 dark:text-blue-400"></i>
+                    Third-Party Services
+                </h2>
+                <div class="rounded-md bg-yellow-50 text-yellow-800 px-4 py-3 dark:bg-yellow-900/30 dark:text-yellow-200" role="alert">
+                    <h6 class="font-semibold"><i class="fas fa-exclamation-triangle mr-2"></i>Stock Data Provider</h6>
+                    <p class="mb-0 text-sm">
+                        We use <strong>Stooq.com</strong> to provide stock quote information. 
+                        Stock symbol requests may be sent to their API. Please review their privacy policy 
+                        for information on how they handle data.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Your Rights -->
+            <section class="mb-8">
+                <h2 class="text-xl font-semibold mb-3 flex items-center gap-2">
+                    <i class="fas fa-user-check text-blue-600 dark:text-blue-400"></i>
+                    Your Rights
+                </h2>
+                <div>
+                    <p>You have the right to:</p>
+                    <ul class="list-disc pl-6 space-y-1">
+                        <li><strong>Access</strong> your personal data</li>
+                        <li><strong>Correct</strong> inaccurate personal data</li>
+                        <li><strong>Delete</strong> your account and associated data</li>
+                        <li><strong>Export</strong> your chat history</li>
+                        <li><strong>Withdraw consent</strong> for data processing</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Data Retention -->
+            <section class="mb-8">
+                <h2 class="text-xl font-semibold mb-3 flex items-center gap-2">
+                    <i class="fas fa-calendar-alt text-blue-600 dark:text-blue-400"></i>
+                    Data Retention
+                </h2>
+                <div class="rounded-md bg-blue-50 text-blue-800 px-4 py-3 dark:bg-blue-900/30 dark:text-blue-200" role="alert">
+                    <p class="mb-2"><strong>Chat Messages:</strong> Stored indefinitely for chat history functionality</p>
+                    <p class="mb-2"><strong>Account Data:</strong> Retained while your account is active</p>
+                    <p class="mb-0"><strong>Logs:</strong> System logs are retained for 30 days for troubleshooting</p>
+                </div>
+            </section>
+
+            <!-- Contact Information -->
+            <section class="mb-6">
+                <h2 class="text-xl font-semibold mb-3 flex items-center gap-2">
+                    <i class="fas fa-envelope text-blue-600 dark:text-blue-400"></i>
+                    Contact Us
+                </h2>
+                <p>
+                    If you have any questions about this privacy policy or your personal data, 
+                    please contact us:
+                </p>
+                <div class="rounded-md border border-gray-200 px-4 py-3 dark:border-gray-700">
+                    <p class="mb-1"><strong>Email:</strong> privacy@chatapp.com</p>
+                    <p class="mb-0"><strong>Response Time:</strong> We aim to respond within 48 hours</p>
+                </div>
+            </section>
+
+            <!-- Development Notice -->
+            @if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
+            {
+                <div class="rounded-md bg-yellow-50 text-yellow-800 px-4 py-3" role="alert">
+                    <h6 class="font-semibold"><i class="fas fa-code mr-2"></i>Development Environment Notice</h6>
+                    <p class="mb-0 text-sm">
+                        This is a development/demo version of ChatApp. In a production environment, 
+                        additional security measures and privacy controls would be implemented.
+                    </p>
+                </div>
+            }
+
+        </div>
+        <div class="px-6 py-3 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <small class="text-gray-600 dark:text-gray-400">
+                    <i class="fas fa-calendar mr-1"></i>
+                    Last updated: January 2025
+                </small>
+                <div>
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <a href="/Chat" class="inline-flex items-center gap-2 rounded-md bg-brand px-3 py-2 text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm">
+                            <i class="fas fa-comments"></i>
+                            Back to Chat
+                        </a>
+                    }
+                    else
+                    {
+                        <a href="/" class="inline-flex items-center gap-2 rounded-md border border-blue-600 text-blue-600 px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm">
+                            <i class="fas fa-home"></i>
+                            Back to Home
+                        </a>
+                    }
                 </div>
             </div>
         </div>

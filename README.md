@@ -26,6 +26,7 @@ A modern, real-time chat application built with ASP.NET Core, SignalR, and Rabbi
 ### Prerequisites
 - .NET 9 SDK
 - Internet connection (for CDN dependencies)
+- Docker running on your machine (WSL on Windows)
 
 ### Start RabbitMQ in Docker (Use WSL on Windows)
 ```bash

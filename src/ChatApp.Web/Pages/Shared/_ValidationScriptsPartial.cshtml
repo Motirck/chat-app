@@ -1,49 +1,31 @@
-﻿<environment include="Development">
-    <script src="~/lib/jquery-validation/dist/jquery.validate.js"></script>
-    <script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.js"></script>
-</environment>
-<environment exclude="Development">
-    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
-    <script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js"></script>
-</environment>
-
+﻿<!-- Tailwind-friendly lightweight client-side helpers (no jQuery) -->
 <script>
-    // Enhanced validation configuration for ChatApp
-    $.validator.setDefaults({
-        highlight: function(element) {
-            $(element).addClass('is-invalid').removeClass('is-valid');
-        },
-        unhighlight: function(element) {
-            $(element).addClass('is-valid').removeClass('is-invalid');
-        },
-        errorElement: 'div',
-        errorClass: 'invalid-feedback',
-        errorPlacement: function(error, element) {
-            error.addClass('invalid-feedback');
-            
-            if (element.prop('type') === 'checkbox') {
-                error.insertAfter(element.parent().parent());
-            } else {
-                error.insertAfter(element);
-            }
-        }
-    });
-
-    // Custom validation rules for ChatApp
-    $.validator.addMethod("username", function(value, element) {
-        return this.optional(element) || /^[a-zA-Z0-9_]+$/.test(value);
-    }, "Username can only contain letters, numbers, and underscores.");
-
-    // Real-time validation feedback
-    $(document).ready(function() {
-        // Add Bootstrap validation classes
-        $('form').on('blur keyup', 'input, textarea, select', function() {
-            let $this = $(this);
-            if ($this.valid()) {
-                $this.addClass('is-valid').removeClass('is-invalid');
-            } else if ($this.val()) {
-                $this.addClass('is-invalid').removeClass('is-valid');
-            }
+    (function() {
+        // Prevent double-submit
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('form').forEach(function(form) {
+                form.addEventListener('submit', function() {
+                    const btn = form.querySelector('button[type="submit"], input[type="submit"]');
+                    if (btn) {
+                        btn.setAttribute('disabled', 'disabled');
+                        btn.classList.add('opacity-60', 'cursor-not-allowed');
+                    }
+                });
+            });
         });
-    });
+
+        // Minimal validation UI hook: if server-side validation spans have content, mark inputs invalid
+        function applyServerValidationStyles() {
+            document.querySelectorAll('[data-valmsg-for]').forEach(function(span) {
+                const key = span.getAttribute('data-valmsg-for');
+                const input = document.querySelector('[name="' + key + '"]');
+                if (!input) return;
+                const hasError = span.textContent && span.textContent.trim().length > 0;
+                input.classList.toggle('border-red-500', hasError);
+                input.classList.toggle('focus:ring-red-500', hasError);
+                input.setAttribute('aria-invalid', hasError ? 'true' : 'false');
+            });
+        }
+        document.addEventListener('DOMContentLoaded', applyServerValidationStyles);
+    })();
 </script>

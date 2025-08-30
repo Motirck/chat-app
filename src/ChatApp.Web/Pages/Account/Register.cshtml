@@ -4,48 +4,44 @@
     ViewData["Title"] = "Register";
 }
 
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-4">
-            <div class="card shadow">
-                <div class="card-body">
-                    <h2 class="card-title text-center mb-4">Create Account</h2>
-                    
-                    <form id="registerForm" method="post">
-                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
-                        
-                        <div class="form-floating mb-3">
-                            <input asp-for="Input.Username" class="form-control" autocomplete="username" aria-required="true" placeholder="Username" />
-                            <label asp-for="Input.Username">Username</label>
-                            <span asp-validation-for="Input.Username" class="text-danger"></span>
-                        </div>
-                        
-                        <div class="form-floating mb-3">
-                            <input asp-for="Input.Email" class="form-control" autocomplete="email" aria-required="true" placeholder="name@example.com" />
-                            <label asp-for="Input.Email">Email</label>
-                            <span asp-validation-for="Input.Email" class="text-danger"></span>
-                        </div>
-                        
-                        <div class="form-floating mb-3">
-                            <input asp-for="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="Password" />
-                            <label asp-for="Input.Password">Password</label>
-                            <span asp-validation-for="Input.Password" class="text-danger"></span>
-                        </div>
-                        
-                        <div class="form-floating mb-4">
-                            <input asp-for="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="Confirm Password" />
-                            <label asp-for="Input.ConfirmPassword">Confirm Password</label>
-                            <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
-                        </div>
-                        
-                        <button id="registerSubmit" type="submit" class="btn btn-primary w-100 mb-3">Register</button>
-                        
-                        <div class="text-center">
-                            <p>Already have an account? <a asp-page="./Login">Sign in</a></p>
-                        </div>
-                    </form>
+<div class="max-w-md mx-auto">
+    <div class="rounded-xl border border-gray-200 bg-white shadow dark:border-gray-700 dark:bg-gray-800">
+        <div class="p-6">
+            <h2 class="text-center text-2xl font-semibold mb-6">Create Account</h2>
+            
+            <form id="registerForm" method="post" class="space-y-4">
+                <div asp-validation-summary="ModelOnly" class="rounded-md bg-red-50 text-red-800 px-4 py-3 dark:bg-red-900/30 dark:text-red-200" role="alert"></div>
+                
+                <div>
+                    <label asp-for="Input.Username" class="block text-sm font-medium mb-1">Username</label>
+                    <input asp-for="Input.Username" class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand dark:bg-gray-900 dark:border-gray-700" autocomplete="username" aria-required="true" />
+                    <span asp-validation-for="Input.Username" class="text-red-600 text-sm"></span>
                 </div>
-            </div>
+                
+                <div>
+                    <label asp-for="Input.Email" class="block text-sm font-medium mb-1">Email</label>
+                    <input asp-for="Input.Email" class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand dark:bg-gray-900 dark:border-gray-700" autocomplete="email" aria-required="true" />
+                    <span asp-validation-for="Input.Email" class="text-red-600 text-sm"></span>
+                </div>
+                
+                <div>
+                    <label asp-for="Input.Password" class="block text-sm font-medium mb-1">Password</label>
+                    <input asp-for="Input.Password" class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand dark:bg-gray-900 dark:border-gray-700" autocomplete="new-password" aria-required="true" />
+                    <span asp-validation-for="Input.Password" class="text-red-600 text-sm"></span>
+                </div>
+                
+                <div>
+                    <label asp-for="Input.ConfirmPassword" class="block text-sm font-medium mb-1">Confirm Password</label>
+                    <input asp-for="Input.ConfirmPassword" class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand dark:bg-gray-900 dark:border-gray-700" autocomplete="new-password" aria-required="true" />
+                    <span asp-validation-for="Input.ConfirmPassword" class="text-red-600 text-sm"></span>
+                </div>
+                
+                <button id="registerSubmit" type="submit" class="w-full inline-flex items-center justify-center gap-2 rounded-md bg-brand px-4 py-2 text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300">Register</button>
+                
+                <div class="text-center text-sm text-gray-600 dark:text-gray-300">
+                    <p>Already have an account? <a class="text-blue-600 hover:underline" asp-page="./Login">Sign in</a></p>
+                </div>
+            </form>
         </div>
     </div>
 </div>

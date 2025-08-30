@@ -4,41 +4,37 @@
     ViewData["Title"] = "Log in";
 }
 
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-4">
-            <div class="card shadow">
-                <div class="card-body">
-                    <h2 class="card-title text-center mb-4">Sign In</h2>
-                    
-                    <form id="account" method="post">
-                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
-                        
-                        <div class="form-floating mb-3">
-                            <input asp-for="Input.Username" class="form-control" autocomplete="username" aria-required="true" placeholder="Username" />
-                            <label asp-for="Input.Username">Username</label>
-                            <span asp-validation-for="Input.Username" class="text-danger"></span>
-                        </div>
-                        
-                        <div class="form-floating mb-3">
-                            <input asp-for="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="Password" />
-                            <label asp-for="Input.Password">Password</label>
-                            <span asp-validation-for="Input.Password" class="text-danger"></span>
-                        </div>
-                        
-                        <div class="form-check mb-3">
-                            <input class="form-check-input" asp-for="Input.RememberMe" />
-                            <label class="form-check-label" asp-for="Input.RememberMe">Remember me</label>
-                        </div>
-                        
-                        <button id="login-submit" type="submit" class="btn btn-primary w-100 mb-3">Log in</button>
-                        
-                        <div class="text-center">
-                            <p>Don't have an account? <a asp-page="./Register">Register here</a></p>
-                        </div>
-                    </form>
+<div class="max-w-md mx-auto">
+    <div class="rounded-xl border border-gray-200 bg-white shadow dark:border-gray-700 dark:bg-gray-800">
+        <div class="p-6">
+            <h2 class="text-center text-2xl font-semibold mb-6">Sign In</h2>
+            
+            <form id="account" method="post" class="space-y-4">
+                <div asp-validation-summary="ModelOnly" class="rounded-md bg-red-50 text-red-800 px-4 py-3 dark:bg-red-900/30 dark:text-red-200" role="alert"></div>
+                
+                <div>
+                    <label asp-for="Input.Username" class="block text-sm font-medium mb-1">Username</label>
+                    <input asp-for="Input.Username" class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand dark:bg-gray-900 dark:border-gray-700" autocomplete="username" aria-required="true" />
+                    <span asp-validation-for="Input.Username" class="text-red-600 text-sm"></span>
                 </div>
-            </div>
+                
+                <div>
+                    <label asp-for="Input.Password" class="block text-sm font-medium mb-1">Password</label>
+                    <input asp-for="Input.Password" class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand dark:bg-gray-900 dark:border-gray-700" autocomplete="current-password" aria-required="true" />
+                    <span asp-validation-for="Input.Password" class="text-red-600 text-sm"></span>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <input class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" asp-for="Input.RememberMe" />
+                    <label class="text-sm" asp-for="Input.RememberMe">Remember me</label>
+                </div>
+                
+                <button id="login-submit" type="submit" class="w-full inline-flex items-center justify-center gap-2 rounded-md bg-brand px-4 py-2 text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300">Log in</button>
+                
+                <div class="text-center text-sm text-gray-600 dark:text-gray-300">
+                    <p>Don't have an account? <a class="text-blue-600 hover:underline" asp-page="./Register">Register here</a></p>
+                </div>
+            </form>
         </div>
     </div>
 </div>

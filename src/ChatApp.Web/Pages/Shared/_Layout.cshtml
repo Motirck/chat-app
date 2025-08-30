@@ -1,127 +1,127 @@
 ﻿
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>@ViewData["Title"] - ChatApp</title>
-    
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css"/>
+
+    <!-- Tailwind CSS (CDN for minimal setup) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Tailwind dark mode via class strategy
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            DEFAULT: '#2563eb',
+                            dark: '#1d4ed8'
+                        }
+                    }
+                }
+            }
+        };
+        // Apply theme from localStorage ASAP to avoid FOUC
+        (function() {
+            const stored = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if ((stored === 'dark') || (!stored && prefersDark)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
+    </script>
+
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
-    <!-- Custom CSS -->
+
+    <!-- Custom CSS (kept for small animations/utilities) -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
     <link rel="stylesheet" href="~/ChatApp.Web.styles.css" asp-append-version="true"/>
 </head>
 
-<body>
+<body class="min-h-full flex flex-col bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
 <header>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
-        <div class="container">
-            <!-- Brand -->
-            <a class="navbar-brand fw-bold" asp-page="/Index">
-                <i class="fas fa-comments me-2"></i>ChatApp
-            </a>
-            
-            <!-- Mobile toggle -->
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
-                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <!-- Navigation -->
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <!-- Navigation section - replace the existing nav section -->
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" asp-page="/Index">
-                            <i class="fas fa-home me-1"></i>Home
-                        </a>
-                    </li>
-    
+    <nav class="bg-brand text-white dark:bg-gray-800 shadow">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 items-center justify-between">
+                <!-- Brand -->
+                <a class="flex items-center gap-2 font-semibold" asp-page="/Index">
+                    <i class="fas fa-comments"></i>
+                    <span>ChatApp</span>
+                </a>
+
+                <!-- Nav links -->
+                <div class="hidden md:flex items-center gap-6">
+                    <a class="hover:underline" asp-page="/Index"><i class="fas fa-home mr-1"></i>Home</a>
                     @if (SignInManager.IsSignedIn(User))
                     {
-                        <li class="nav-item">
-                            <a class="nav-link" asp-page="/Chat">
-                                <i class="fas fa-comments me-1"></i>Chat Room
-                            </a>
-                        </li>
+                        <a class="hover:underline" asp-page="/Chat"><i class="fas fa-comments mr-1"></i>Chat Room</a>
                     }
-                </ul>
-                
-                <!-- User menu -->
-                <ul class="navbar-nav">
+                </div>
+
+                <!-- Right actions -->
+                <div class="flex items-center gap-3">
+                    <!-- Theme Toggle -->
+                    <button id="themeToggle" class="inline-flex items-center justify-center rounded-md p-2 bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white dark:bg-black/20" aria-label="Toggle theme">
+                        <i class="fas fa-moon hidden dark:inline"></i>
+                        <i class="fas fa-sun dark:hidden"></i>
+                    </button>
+
                     @if (SignInManager.IsSignedIn(User))
                     {
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" 
-                               data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-user me-1"></i>@UserManager.GetUserName(User)
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li>
-                                    <a class="dropdown-item" href="#">
-                                        <i class="fas fa-user-cog me-2"></i>Profile
-                                    </a>
-                                </li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <form method="post" asp-page="/Account/Logout" class="d-inline">
-                                        <button type="submit" class="dropdown-item">
-                                            <i class="fas fa-sign-out-alt me-2"></i>Logout
-                                        </button>
-                                    </form>
-                                </li>
-                            </ul>
-                        </li>
+                        <div class="relative group">
+                            <button class="inline-flex items-center gap-2 rounded-md px-3 py-2 bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white">
+                                <i class="fas fa-user"></i>@UserManager.GetUserName(User)
+                            </button>
+                            <div class="absolute right-0 mt-2 w-40 rounded-md bg-white text-gray-900 shadow-lg ring-1 ring-black/10 hidden group-hover:block dark:bg-gray-800 dark:text-gray-100">
+                                <a class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700" href="#"><i class="fas fa-user-cog mr-2"></i>Profile</a>
+                                <hr class="border-gray-200 dark:border-gray-700" />
+                                <form method="post" asp-page="/Account/Logout">
+                                    <button type="submit" class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="fas fa-sign-out-alt mr-2"></i>Logout</button>
+                                </form>
+                            </div>
+                        </div>
                     }
                     else
                     {
-                        <li class="nav-item">
-                            <a class="nav-link" asp-page="/Account/Login">
-                                <i class="fas fa-sign-in-alt me-1"></i>Login
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-page="/Account/Register">
-                                <i class="fas fa-user-plus me-1"></i>Register
-                            </a>
-                        </li>
+                        <a class="rounded-md px-3 py-2 bg-white/10 hover:bg-white/20" asp-page="/Account/Login"><i class="fas fa-sign-in-alt mr-1"></i>Login</a>
+                        <a class="rounded-md px-3 py-2 bg-white/10 hover:bg-white/20" asp-page="/Account/Register"><i class="fas fa-user-plus mr-1"></i>Register</a>
                     }
-                </ul>
+                </div>
             </div>
         </div>
     </nav>
 </header>
 
 <!-- Main content -->
-<main class="container-fluid px-0">
+<main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
     @RenderBody()
 </main>
 
 <!-- Footer -->
-<footer class="bg-light border-top mt-5 py-4">
-    <div class="container">
-        <div class="row">
-            <div class="col-md-6">
-                <p class="text-muted mb-0">
-                    &copy; 2025 ChatApp - Real-time chat with stock quotes
-                </p>
-            </div>
-            <div class="col-md-6 text-md-end">
-                <small class="text-muted">
-                    <i class="fas fa-code me-1"></i>Built with .NET 9 & SignalR
-                </small>
-            </div>
-        </div>
+<footer class="border-t border-gray-200 dark:border-gray-700 mt-8 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-3">
+        <p class="text-sm text-gray-600 dark:text-gray-400">&copy; 2025 ChatApp - Real-time chat with stock quotes</p>
+        <small class="text-sm text-gray-600 dark:text-gray-400"><i class="fas fa-code mr-1"></i>Built with .NET 9 & SignalR</small>
     </div>
 </footer>
 
 <!-- Scripts -->
-<script src="~/lib/jquery/dist/jquery.min.js"></script>
-<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
+<script>
+    // Theme toggle behavior
+    document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.getElementById('themeToggle');
+        btn?.addEventListener('click', () => {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        });
+    });
+</script>
 <script src="~/js/site.js" asp-append-version="true"></script>
 
 @await RenderSectionAsync("Scripts", required: false)
