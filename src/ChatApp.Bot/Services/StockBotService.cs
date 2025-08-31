@@ -77,7 +77,7 @@ public class StockBotService : BackgroundService
                 _logger.LogWarning("No quote found for stock code: {StockCode} in room {RoomId}", 
                     command.StockCode, command.RoomId);
 
-                await _messageBroker.PublishStockQuoteAsync(command.StockCode, quoteMessage, command.Username);
+                await _messageBroker.PublishStockQuoteAsync(command.StockCode, quoteMessage, command.Username, command.RoomId);
             }
 
             _logger.LogInformation("Published stock quote response for {StockCode} to room {RoomId}",
@@ -93,10 +93,14 @@ public class StockBotService : BackgroundService
                 await _messageBroker.PublishStockQuoteAsync(
                     command.StockCode,
                     $"🤖 Sorry, I encountered an error while fetching the quote for {command.StockCode.ToUpper()}. Please try again later.",
-                    command.Username);
+                    command.Username, 
+                    command.RoomId);
             }
             catch (Exception publishEx)
             {
+                _logger.LogError(publishEx, "Error when sending that the {StockCode} was not found. User {Username} in room {RoomId}",
+                    command.StockCode, command.Username, command.RoomId);
+                
                 await _messageBroker.PublishStockQuoteAsync(
                     command.StockCode,
                     $"🤖 Sorry, I encountered an error while fetching the quote for {command.StockCode.ToUpper()}. Please try again later.",
