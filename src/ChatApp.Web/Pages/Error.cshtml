@@ -1,0 +1,123 @@
+﻿@page
+@model ErrorModel
+@{
+    ViewData["Title"] = "Error - ChatApp";
+    Layout = "~/Pages/Shared/_Layout.cshtml";
+}
+
+<div class="max-w-3xl mx-auto text-center">
+    <div class="py-8">
+        <!-- Error Icon -->
+        <div class="mb-4">
+            <i class="fas fa-exclamation-triangle text-yellow-500" style="font-size: 4rem;"></i>
+        </div>
+
+        <!-- Error Title -->
+        <h1 class="text-3xl font-bold text-red-600 dark:text-red-400 mb-3">
+            @if (Model.StatusCode.HasValue)
+            {
+                @($"Error {Model.StatusCode}")
+            }
+            else
+            {
+                @("Oops! Something went wrong")
+            }
+        </h1>
+
+        <!-- Error Message -->
+        <h2 class="text-lg text-gray-600 dark:text-gray-300 mb-6">@Model.ErrorMessage</h2>
+
+        <!-- Actions -->
+        <div class="mb-6 flex items-center justify-center gap-3">
+            <a href="/" class="inline-flex items-center gap-2 rounded-md bg-brand px-4 py-2 text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                <i class="fas fa-home"></i>
+                Go Home
+            </a>
+            
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <a href="/Chat" class="inline-flex items-center gap-2 rounded-md border border-blue-600 text-blue-600 px-4 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                    <i class="fas fa-comments"></i>
+                    Go to Chat
+                </a>
+            }
+            else
+            {
+                <a href="/Account/Login" class="inline-flex items-center gap-2 rounded-md border border-blue-600 text-blue-600 px-4 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Sign In
+                </a>
+            }
+        </div>
+
+        <!-- Request ID for developers -->
+        @if (Model.ShowRequestId)
+        {
+            <div class="rounded-md border border-gray-200 px-4 py-3 inline-block dark:border-gray-700">
+                <small class="text-gray-600 dark:text-gray-300">
+                    <strong>Request ID:</strong> 
+                    <code>@Model.RequestId</code>
+                </small>
+            </div>
+        }
+
+        <!-- Development environment info -->
+        @if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
+        {
+            <div class="rounded-md bg-blue-50 text-blue-800 px-4 py-3 mt-6 inline-block text-left dark:bg-blue-900/30 dark:text-blue-200" role="alert">
+                <h5 class="font-semibold">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    Development Mode
+                </h5>
+                <p class="mb-2 text-sm">
+                    You're seeing this detailed error information because the application is running in 
+                    <strong>Development</strong> environment.
+                </p>
+                <hr class="border-gray-200 dark:border-gray-700">
+                <p class="mb-0 text-sm text-gray-600 dark:text-gray-300">
+                    <strong>Note:</strong> Detailed error information should not be displayed in production 
+                    environments for security reasons.
+                </p>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Common ChatApp specific errors -->
+@if (Model.StatusCode == 404)
+{
+    <div class="max-w-xl mx-auto mt-8">
+        <div class="rounded-xl border border-gray-200 bg-white shadow dark:border-gray-700 dark:bg-gray-800">
+            <div class="p-6 text-center">
+                <h5 class="text-lg font-semibold mb-1">Looking for something specific?</h5>
+                <p class="text-gray-600 dark:text-gray-300 mb-4">Here are some popular pages in ChatApp:</p>
+                <div class="grid gap-2">
+                    <a href="/" class="inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:border-gray-700 dark:hover:bg-gray-900/30 text-sm">Home Page</a>
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <a href="/Chat" class="inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:border-gray-700 dark:hover:bg-gray-900/30 text-sm">Chat Room</a>
+                    }
+                    else
+                    {
+                        <a href="/Account/Login" class="inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:border-gray-700 dark:hover:bg-gray-900/30 text-sm">Login</a>
+                        <a href="/Account/Register" class="inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:border-gray-700 dark:hover:bg-gray-900/30 text-sm">Register</a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // Auto-redirect after 30 seconds for certain errors
+        @if (Model.StatusCode == 401)
+        {
+            <text>
+            setTimeout(function() {
+                window.location.href = '/Account/Login';
+            }, 30000);
+            </text>
+        }
+    </script>
+}

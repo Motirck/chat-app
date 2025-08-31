@@ -1,0 +1,35 @@
+/* Minimal custom styles layered on top of Tailwind */
+
+/* Ensure full-height layout so footer sticks to bottom */
+html, body { height: 100%; }
+
+/* Online user green dot */
+.online-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background-color: #22c55e; /* green-500 */
+    display: inline-block;
+}
+
+/* Active room highlighting */
+.active-room {
+    background-color: rgba(59, 130, 246, 0.08); /* blue-500 at low opacity */
+    border-left: 3px solid #3b82f6; /* blue-500 */
+}
+
+/* Typing indicator styles (kept, but colors overridden by Tailwind text classes in markup) */
+#typingIndicator {
+    padding: 5px 15px;
+    font-style: italic;
+}
+
+.fa-keyboard {
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}

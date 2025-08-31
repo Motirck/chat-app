@@ -1,0 +1,171 @@
+﻿
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>@ViewData["Title"] - ChatApp</title>
+
+    <!-- Tailwind CSS (CDN for minimal setup) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Tailwind dark mode via class strategy
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            DEFAULT: '#2563eb',
+                            dark: '#1d4ed8'
+                        }
+                    }
+                }
+            }
+        };
+        // Apply theme from localStorage ASAP to avoid FOUC
+        (function() {
+            const stored = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if ((stored === 'dark') || (!stored && prefersDark)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
+    </script>
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
+
+    <!-- Custom CSS (kept for small animations/utilities) -->
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
+    <link rel="stylesheet" href="~/ChatApp.Web.styles.css" asp-append-version="true"/>
+</head>
+
+<body class="min-h-full flex flex-col bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+<header>
+    <nav class="bg-brand text-white dark:bg-gray-800 shadow">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 items-center justify-between">
+                <!-- Brand -->
+                <a class="flex items-center gap-2 font-semibold" asp-page="/Index">
+                    <i class="fas fa-comments"></i>
+                    <span>ChatApp</span>
+                </a>
+
+                <!-- Nav links -->
+                <div class="hidden md:flex items-center gap-6">
+                    <a class="hover:underline" asp-page="/Index"><i class="fas fa-home mr-1"></i>Home</a>
+                    @if (SignInManager.IsSignedIn(User))
+                    {
+                        <a class="hover:underline" asp-page="/Chat"><i class="fas fa-comments mr-1"></i>Chat Room</a>
+                    }
+                </div>
+
+                <!-- Right actions -->
+                <div class="flex items-center gap-3">
+                    <!-- Theme Toggle -->
+                    <button id="themeToggle" class="inline-flex items-center justify-center rounded-md p-2 bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white dark:bg-black/20" aria-label="Toggle theme">
+                        <i class="fas fa-moon hidden dark:inline"></i>
+                        <i class="fas fa-sun dark:hidden"></i>
+                    </button>
+
+                    @if (SignInManager.IsSignedIn(User))
+                    {
+                        <div class="relative" id="userMenu">
+                            <button type="button" id="userMenuButton" class="inline-flex items-center gap-2 rounded-md px-3 py-2 bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white" aria-haspopup="true" aria-expanded="false">
+                                <i class="fas fa-user"></i>@UserManager.GetUserName(User)
+                            </button>
+                            <div id="userMenuDropdown" class="absolute right-0 mt-2 w-44 rounded-md bg-white text-gray-900 shadow-lg ring-1 ring-black/10 hidden dark:bg-gray-800 dark:text-gray-100">
+                                <a class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700" href="#"><i class="fas fa-user-cog mr-2"></i>Profile</a>
+                                <hr class="border-gray-200 dark:border-gray-700" />
+                                <form method="post" asp-page="/Account/Logout">
+                                    <button type="submit" class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="fas fa-sign-out-alt mr-2"></i>Logout</button>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <a class="rounded-md px-3 py-2 bg-white/10 hover:bg-white/20" asp-page="/Account/Login"><i class="fas fa-sign-in-alt mr-1"></i>Login</a>
+                        <a class="rounded-md px-3 py-2 bg-white/10 hover:bg-white/20" asp-page="/Account/Register"><i class="fas fa-user-plus mr-1"></i>Register</a>
+                    }
+                </div>
+            </div>
+        </div>
+    </nav>
+</header>
+
+<!-- Main content -->
+<main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    @RenderBody()
+</main>
+
+<!-- Footer -->
+<footer class="border-t border-gray-200 dark:border-gray-700 mt-8 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-3">
+        <p class="text-sm text-gray-600 dark:text-gray-400">&copy; 2025 ChatApp - Real-time chat with stock quotes</p>
+        <small class="text-sm text-gray-600 dark:text-gray-400"><i class="fas fa-code mr-1"></i>Built with .NET 9 & SignalR</small>
+    </div>
+</footer>
+
+<!-- Scripts -->
+<script src="https://unpkg.com/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
+<script>
+    // Theme toggle behavior
+    document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.getElementById('themeToggle');
+        btn?.addEventListener('click', () => {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        });
+    });
+</script>
+<script>
+    // User menu click-to-toggle with outside click and Escape key to close
+    document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.getElementById('userMenuButton');
+        const menu = document.getElementById('userMenuDropdown');
+        const container = document.getElementById('userMenu');
+        if (!btn || !menu || !container) return;
+
+        const openMenu = () => {
+            menu.classList.remove('hidden');
+            btn.setAttribute('aria-expanded', 'true');
+        };
+        const closeMenu = () => {
+            menu.classList.add('hidden');
+            btn.setAttribute('aria-expanded', 'false');
+        };
+        const toggleMenu = () => {
+            const isHidden = menu.classList.contains('hidden');
+            if (isHidden) openMenu(); else closeMenu();
+        };
+
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleMenu();
+        });
+
+        // Close when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!container.contains(e.target)) {
+                closeMenu();
+            }
+        });
+
+        // Close on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeMenu();
+            }
+        });
+    });
+</script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+
+@await RenderSectionAsync("Scripts", required: false)
+
+</body>
+</html>

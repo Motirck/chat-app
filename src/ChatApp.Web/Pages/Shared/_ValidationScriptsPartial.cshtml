@@ -1,0 +1,31 @@
+﻿<!-- Tailwind-friendly lightweight client-side helpers (no jQuery) -->
+<script>
+    (function() {
+        // Prevent double-submit
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('form').forEach(function(form) {
+                form.addEventListener('submit', function() {
+                    const btn = form.querySelector('button[type="submit"], input[type="submit"]');
+                    if (btn) {
+                        btn.setAttribute('disabled', 'disabled');
+                        btn.classList.add('opacity-60', 'cursor-not-allowed');
+                    }
+                });
+            });
+        });
+
+        // Minimal validation UI hook: if server-side validation spans have content, mark inputs invalid
+        function applyServerValidationStyles() {
+            document.querySelectorAll('[data-valmsg-for]').forEach(function(span) {
+                const key = span.getAttribute('data-valmsg-for');
+                const input = document.querySelector('[name="' + key + '"]');
+                if (!input) return;
+                const hasError = span.textContent && span.textContent.trim().length > 0;
+                input.classList.toggle('border-red-500', hasError);
+                input.classList.toggle('focus:ring-red-500', hasError);
+                input.setAttribute('aria-invalid', hasError ? 'true' : 'false');
+            });
+        }
+        document.addEventListener('DOMContentLoaded', applyServerValidationStyles);
+    })();
+</script>

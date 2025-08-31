@@ -1,0 +1,394 @@
+﻿
+@page
+@model ChatApp.Web.Pages.ChatModel
+@{
+    ViewData["Title"] = "Chat Room";
+}
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Chat Messages Area -->
+    <div class="lg:col-span-2">
+        <div class="rounded-xl border border-gray-200 bg-white shadow dark:border-gray-700 dark:bg-gray-800">
+            <div class="rounded-t-xl px-4 py-3 bg-brand text-white dark:bg-gray-700">
+                <h5 class="m-0 font-semibold flex items-center gap-2">
+                    <i class="fas fa-comments"></i>Chat Room
+                    <small class="opacity-80">Welcome, @UserManager.GetUserName(User)!</small>
+                </h5>
+            </div>
+            <div class="p-0" style="height: 500px;">
+                <!-- Messages Container -->
+                <div id="messagesContainer" class="h-full overflow-auto p-4 space-y-2">
+                    <div id="messagesList">
+                        <!-- Messages will be populated here via SignalR -->
+                        @foreach (var message in Model.RecentMessages)
+                        {
+                            if (message.IsStockQuote && message.Username == "StockBot")
+                            {
+                                <!-- Stock quote message with special styling -->
+                                <div class="message">
+                                    <div class="flex items-center justify-between">
+                                        <strong class="text-green-600 dark:text-green-400">
+                                            <i class="fas fa-robot mr-1"></i>@message.Username
+                                        </strong>
+                                        <small class="text-gray-500">@message.Timestamp.ToString("HH:mm")</small>
+                                    </div>
+                                    <div class="message-content bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 rounded px-2 py-1 mt-1">
+                                        <i class="fas fa-chart-line mr-1"></i>@message.Content
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <!-- Regular message -->
+                                <div class="message">
+                                    <div class="flex items-center justify-between">
+                                        <strong class="text-brand dark:text-blue-300">@message.Username</strong>
+                                        <small class="text-gray-500">@message.Timestamp.ToString("HH:mm")</small>
+                                    </div>
+                                    <div class="message-content">@message.Content</div>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+            <div id="chatFooter" class="border-t border-gray-200 dark:border-gray-700 p-3">
+                <!-- Message Input -->
+                <div class="flex gap-2">
+                    <input type="text" id="messageInput" class="flex-1 rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand dark:bg-gray-900 dark:border-gray-700" placeholder="Type your message here..." maxlength="1000" />
+                    <button class="inline-flex items-center gap-2 rounded-md bg-brand px-4 py-2 text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300" type="button" id="sendButton">
+                        <i class="fas fa-paper-plane"></i>Send
+                    </button>
+                </div>
+                <small class="text-gray-500 mt-2 block">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Type <code class="px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-700">/stock=symbol</code> to get stock quotes (e.g., /stock=aapl.us)
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Online Users & Info -->
+    <div class="lg:col-span-1">
+        <!-- Rooms List -->
+        <div class="rounded-xl border border-gray-200 bg-white shadow dark:border-gray-700 dark:bg-gray-800 mb-4">
+            <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                <h6 class="m-0 font-semibold flex items-center gap-2">
+                    <i class="fas fa-door-open"></i>Rooms
+                </h6>
+            </div>
+            <div class="p-2">
+                <ul class="space-y-1 m-0" id="roomsList">
+                    @foreach (var room in Model.AvailableRooms)
+                    {
+                        var isActive = room.Id == Model.CurrentRoomId ? "active-room" : string.Empty;
+                        <li>
+                            <a class="room-link flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700/50 @isActive"
+                               href="?room=@room.Id" data-room-id="@room.Id">
+                                <i class="fas fa-hashtag text-gray-500"></i>
+                                <span>@room.Name</span>
+                                @if (room.Id == Model.CurrentRoomId)
+                                {
+                                    <span class="ml-auto text-xs text-brand">(current)</span>
+                                }
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+
+        <div class="rounded-xl border border-gray-200 bg-white shadow dark:border-gray-700 dark:bg-gray-800 mb-4">
+            <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                <h6 class="m-0 font-semibold flex items-center gap-2">
+                    <i class="fas fa-users"></i>Online Users
+                    <span id="userCount" class="ml-2 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-300">1</span>
+                </h6>
+            </div>
+            <div class="p-4">
+                <div id="usersList">
+                    <!-- Online users will be populated via SignalR -->
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="online-indicator me-2"></span>
+                        <span>@UserManager.GetUserName(User)</span>
+                        <small class="text-gray-500 ml-auto">(You)</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Instructions -->
+        <div class="rounded-xl border border-gray-200 bg-white shadow dark:border-gray-700 dark:bg-gray-800">
+            <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                <h6 class="m-0 font-semibold flex items-center gap-2">
+                    <i class="fas fa-question-circle"></i>How to Use
+                </h6>
+            </div>
+            <div class="p-4">
+                <ul class="space-y-2 m-0">
+                    <li class="flex items-start gap-2">
+                        <i class="fas fa-comment text-blue-600 dark:text-blue-400 mt-0.5"></i>
+                        <span>Type messages and press Enter or click Send</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <i class="fas fa-chart-line text-green-600 dark:text-green-400 mt-0.5"></i>
+                        <span>Use <code class="px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-700">/stock=SYMBOL</code> for stock quotes</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <i class="fas fa-robot text-cyan-600 dark:text-cyan-400 mt-0.5"></i>
+                        <span>Bot will respond with current stock prices</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <i class="fas fa-history text-gray-500 dark:text-gray-400 mt-0.5"></i>
+                        <span>Last 50 messages are shown on page load</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Connection Status -->
+<div id="connectionStatus" class="fixed bottom-0 right-0 m-3">
+    <div class="rounded-md bg-blue-50 text-blue-800 px-3 py-2 shadow dark:bg-blue-900/30 dark:text-blue-200" role="alert">
+        <i class="fas fa-circle-notch fa-spin mr-2"></i>
+        <span id="statusText">Connecting to chat...</span>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // SignalR Chat Implementation (multi-room)
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/chatHub")
+            .build();
+
+        const currentRoomId = "@Model.CurrentRoomId";
+        const messageInput = document.getElementById("messageInput");
+        const sendButton = document.getElementById("sendButton");
+        const messagesList = document.getElementById("messagesList");
+        const messagesContainer = document.getElementById("messagesContainer");
+        const statusElement = document.getElementById("statusText");
+        const connectionStatus = document.getElementById("connectionStatus");
+        const usersList = document.getElementById("usersList");
+        const userCount = document.getElementById("userCount");
+        const currentUser = "@UserManager.GetUserName(User)";
+        let typingTimer;
+        let isTyping = false;
+        const typingIndicator = document.createElement("div");
+        typingIndicator.id = "typingIndicator";
+        typingIndicator.className = "inline-flex items-center gap-2 mb-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 ring-1 ring-blue-200 dark:bg-blue-900/30 dark:text-blue-200 dark:ring-blue-800/50 font-medium hidden";
+
+        // Insert typing indicator at the top of the footer section
+        const footer = document.getElementById('chatFooter');
+        if (footer) {
+            footer.prepend(typingIndicator);
+        }
+
+        // Typing users management
+        let typingUsers = new Set();
+
+        function updateTypingIndicator(username, isTyping) {
+            if (isTyping) {
+                typingUsers.add(username);
+            } else {
+                typingUsers.delete(username);
+            }
+
+            if (typingUsers.size === 0) {
+                typingIndicator.classList.add('hidden');
+            } else {
+                const userList = Array.from(typingUsers);
+                let text;
+
+                if (userList.length === 1) {
+                    text = `${userList[0]} is typing...`;
+                } else if (userList.length === 2) {
+                    text = `${userList[0]} and ${userList[1]} are typing...`;
+                } else {
+                    text = `${userList.slice(0, -1).join(", ")} and ${userList[userList.length - 1]} are typing...`;
+                }
+
+                typingIndicator.innerHTML = `<i class="fas fa-keyboard mr-1 text-blue-600 dark:text-blue-300"></i>${text}`;
+                typingIndicator.classList.remove('hidden');
+            }
+        }
+
+        // Start SignalR connection
+        connection.start().then(function () {
+            statusElement.textContent = "Connected to chat!";
+            // Join the selected room
+            connection.invoke("JoinRoom", currentRoomId);
+            setTimeout(() => {
+                connectionStatus.style.display = 'none';
+            }, 3000);
+
+        }).catch(function (err) {
+            console.error(err.toString());
+            statusElement.textContent = "Connection failed. Please refresh the page.";
+        });
+
+        // Handle incoming messages (room-scoped)
+        connection.on("ReceiveMessage", function (username, message, timestamp, roomId) {
+            if (roomId !== currentRoomId) return;
+            const messageDiv = document.createElement("div");
+            messageDiv.className = "message mb-2";
+            
+            const time = new Date(timestamp).toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+
+            messageDiv.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <strong class="text-brand dark:text-blue-300">${escapeHtml(username)}</strong>
+                    <small class="text-gray-500">${time}</small>
+                </div>
+                <div class="message-content">${escapeHtml(message)}</div>
+            `;
+
+            messagesList.appendChild(messageDiv);
+            scrollToBottom();
+        });
+
+        // Handle user joined (room-scoped)
+        connection.on("UserJoinedRoom", function (username) {
+            addSystemMessage(`${username} joined the room`);
+        });
+
+        // Handle user left (room-scoped)
+        connection.on("UserLeftRoom", function (username) {
+            addSystemMessage(`${username} left the room`);
+        });
+
+        // Handle online users update
+        connection.on("UpdateOnlineUsers", function (users) {
+            updateOnlineUsersList(users);
+        });
+
+        // Handle stock quotes (room-scoped)
+        connection.on("ReceiveStockQuote", function (username, quote, timestamp, roomId) {
+            if (roomId !== currentRoomId) return;
+            const messageDiv = document.createElement("div");
+            messageDiv.className = "message mb-2 stock-quote";
+
+            const time = new Date(timestamp).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            messageDiv.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <strong class="text-green-600 dark:text-green-400">
+                        <i class="fas fa-robot mr-1"></i>${escapeHtml(username)}
+                    </strong>
+                    <small class="text-gray-500">${time}</small>
+                </div>
+                <div class="message-content bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 rounded px-2 py-1 mt-1">
+                    <i class="fas fa-chart-line mr-1"></i>${escapeHtml(quote)}
+                </div>
+            `;
+
+            messagesList.appendChild(messageDiv);
+            scrollToBottom();
+        });
+
+        // Handle typing notifications
+        connection.on("UserTyping", function (username) {
+            updateTypingIndicator(username, true);
+        });
+
+        connection.on("UserStoppedTyping", function (username) {
+            updateTypingIndicator(username, false);
+        });
+
+        // Send message function
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message) {
+                // Clear typing indicator immediately
+                clearTimeout(typingTimer);
+                if (isTyping) {
+                    isTyping = false;
+                    connection.invoke("UserStoppedTyping", currentRoomId);
+                }
+
+                connection.invoke("SendMessage", message, currentRoomId);
+                messageInput.value = "";
+            }
+        }
+        
+        // Update online users list
+        function updateOnlineUsersList(users) {
+            usersList.innerHTML = '';
+            userCount.textContent = users.length;
+            
+            users.forEach(function(username) {
+                const userDiv = document.createElement("div");
+                userDiv.className = "flex items-center gap-2 mb-2";
+                
+                const isCurrentUser = username === currentUser;
+                
+                userDiv.innerHTML = `
+                    <span class="online-indicator mr-2"></span>
+                    <span>${escapeHtml(username)}</span>
+                    ${isCurrentUser ? '<small class="text-gray-500 ml-auto">(You)</small>' : ''}
+                `;
+                
+                usersList.appendChild(userDiv);
+            });
+        }
+
+        // Event listeners
+        sendButton.addEventListener("click", sendMessage);
+        messageInput.addEventListener("keypress", function (e) {
+            if (e.key === "Enter") {
+                sendMessage();
+            }
+        });
+
+        // Handle typing events
+        messageInput.addEventListener("input", function() {
+            if (!isTyping) {
+                isTyping = true;
+                connection.invoke("UserTyping", currentRoomId);
+            }
+
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(() => {
+                isTyping = false;
+                connection.invoke("UserStoppedTyping", currentRoomId);
+            }, 1000); // Stop typing after 1 second of inactivity
+        });
+
+        // Helper functions
+        function addSystemMessage(message) {
+            const messageDiv = document.createElement("div");
+            messageDiv.className = "message mb-2 system-message";
+            messageDiv.innerHTML = `
+                <div class="text-center">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>${escapeHtml(message)}
+                    </small>
+                </div>
+            `;
+            messagesList.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement("div");
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Auto-scroll to bottom on page load
+        document.addEventListener("DOMContentLoaded", function() {
+            scrollToBottom();
+        });
+    </script>
+}
