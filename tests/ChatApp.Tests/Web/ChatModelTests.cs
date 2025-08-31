@@ -23,10 +23,11 @@ public class ChatModelTests
         userMgr.Setup(m => m.UpdateAsync(It.IsAny<ApplicationUser>())).ReturnsAsync(IdentityResult.Success);
 
         var messages = new List<ChatMessage> { new ChatMessage { Content = "hi", Timestamp = DateTime.UtcNow, UserId = "u1", Username = "john" } };
-        repo.Setup(r => r.GetLastMessagesAsync(50)).ReturnsAsync(messages);
+        repo.Setup(r => r.GetLastMessagesAsync(50, It.IsAny<string?>())).ReturnsAsync(messages);
+        repo.Setup(r => r.GetAvailableRoomsAsync()).ReturnsAsync(new List<ChatRoom>{ new ChatRoom{ Id = "lobby", Name = "Lobby", CreatedAt = DateTime.UtcNow } });
 
         var model = new ChatModel(repo.Object, userMgr.Object, logger);
-        await model.OnGetAsync();
+        await model.OnGetAsync(null);
 
         model.CurrentUser.Should().NotBeNull();
         model.RecentMessages.Should().HaveCount(1);

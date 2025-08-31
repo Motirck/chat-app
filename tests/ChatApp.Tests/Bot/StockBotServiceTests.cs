@@ -58,7 +58,7 @@ public class StockBotServiceTests : IClassFixture<StockBotFixture>
 
         stockMock.Setup(s => s.GetStockQuoteAsync("aapl")).ReturnsAsync("AAPL quote is 100");
         brokerMock
-            .Setup(b => b.PublishStockQuoteAsync("aapl", It.Is<string>(m => m.Contains("AAPL quote is 100")), "john"))
+            .Setup(b => b.PublishStockQuoteAsync("aapl", It.Is<string>(m => m.Contains("AAPL quote is 100")), "john", "lobby"))
             .Returns(Task.CompletedTask);
 
         var service = CreateService();
@@ -74,7 +74,7 @@ public class StockBotServiceTests : IClassFixture<StockBotFixture>
         brokerMock.Setup(b => b.StopConsuming());
         stockMock.Setup(s => s.GetStockQuoteAsync("aapl")).ReturnsAsync("AAPL quote is 100");
         brokerMock
-            .Setup(b => b.PublishStockQuoteAsync("aapl", It.Is<string>(m => m.Contains("AAPL quote is 100")), "john"))
+            .Setup(b => b.PublishStockQuoteAsync("aapl", It.Is<string>(m => m.Contains("AAPL quote is 100")), "john", "lobby"))
             .Returns(Task.CompletedTask);
 
         var cts = new CancellationTokenSource();
@@ -83,7 +83,7 @@ public class StockBotServiceTests : IClassFixture<StockBotFixture>
         capturedHandler.Should().NotBeNull();
 
         // Act
-        await capturedHandler!(new StockCommandDto { StockCode = "aapl", Username = "john" });
+        await capturedHandler!(new StockCommandDto { StockCode = "aapl", Username = "john", RoomId = "lobby" });
 
         // Cleanup
         cts.Cancel();
@@ -91,7 +91,7 @@ public class StockBotServiceTests : IClassFixture<StockBotFixture>
 
         // Assert
         stockMock.Verify(s => s.GetStockQuoteAsync("aapl"), Times.Once);
-        brokerMock.Verify(b => b.PublishStockQuoteAsync("aapl", It.IsAny<string>(), "john"), Times.Once);
+        brokerMock.Verify(b => b.PublishStockQuoteAsync("aapl", It.IsAny<string>(), "john", "lobby"), Times.Once);
     }
 
     [Fact(DisplayName = "HandleStockCommandAsync publishes error on exception"), Trait("Category", "Unit"), Trait("Area", "Bot")]
@@ -112,7 +112,7 @@ public class StockBotServiceTests : IClassFixture<StockBotFixture>
 
         stockMock.Setup(s => s.GetStockQuoteAsync("msft")).ThrowsAsync(new Exception("boom"));
         brokerMock
-            .Setup(b => b.PublishStockQuoteAsync("msft", It.Is<string>(m => m.Contains("error") || m.Contains("Sorry")), "alice"))
+            .Setup(b => b.PublishStockQuoteAsync("msft", It.Is<string>(m => m.Contains("error") || m.Contains("Sorry")), "alice", "lobby"))
             .Returns(Task.CompletedTask);
 
         var service = CreateService();
@@ -122,7 +122,7 @@ public class StockBotServiceTests : IClassFixture<StockBotFixture>
         capturedHandler.Should().NotBeNull();
 
         // Act
-        await capturedHandler!(new StockCommandDto { StockCode = "msft", Username = "alice" });
+        await capturedHandler!(new StockCommandDto { StockCode = "msft", Username = "alice", RoomId = "lobby" });
 
         // Cleanup
         cts.Cancel();

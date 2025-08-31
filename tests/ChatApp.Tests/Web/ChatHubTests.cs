@@ -84,48 +84,52 @@ public class ChatHubTests
         public override void Abort() { }
     }
 
-    [Fact(DisplayName = "ChatHub: routes /stock= to broker and acknowledges"), Trait("Category","Unit"), Trait("Area","Web")]
+    [Fact(DisplayName = "ChatHub: routes /stock= to broker and acknowledges (room-scoped)"), Trait("Category","Unit"), Trait("Area","Web")]
     public async Task Routes_Stock_Command()
     {
         var (hub, repo, broker, user, clients, caller, all, groups) = CreateHub();
-        broker.Setup(b => b.PublishStockCommandAsync("aapl", "john")).Returns(Task.CompletedTask);
+        broker.Setup(b => b.PublishStockCommandAsync("aapl", "john", "lobby")).Returns(Task.CompletedTask);
         caller.Setup(p => p.SendCoreAsync("ReceiveMessage", It.IsAny<object?[]>(), default)).Returns(Task.CompletedTask);
 
-        await hub.SendMessage("/stock=aapl");
+        await hub.SendMessage("/stock=aapl", "lobby");
 
-        broker.Verify(b => b.PublishStockCommandAsync("aapl", "john"), Times.Once);
+        broker.Verify(b => b.PublishStockCommandAsync("aapl", "john", "lobby"), Times.Once);
         caller.Verify(p => p.SendCoreAsync(
             "ReceiveMessage",
-            It.Is<object?[]>(args => args.Length == 3 && (string)args[0] == "System"),
+            It.Is<object?[]>(args => args.Length == 4 && (string)args[0] == "System" && (string)args[3] == "lobby"),
             default), Times.Once);
     }
 
-    [Fact(DisplayName = "ChatHub: regular message saved and broadcasted"), Trait("Category","Unit"), Trait("Area","Web")]
+    [Fact(DisplayName = "ChatHub: regular message saved and broadcasted to room"), Trait("Category","Unit"), Trait("Area","Web")]
     public async Task Saves_And_Broadcasts_Message()
     {
         var (hub, repo, broker, user, clients, caller, all, groups) = CreateHub();
         repo.Setup(r => r.AddMessageAsync(It.IsAny<ChatMessage>())).ReturnsAsync((ChatMessage m) => m);
-        all.Setup(p => p.SendCoreAsync("ReceiveMessage", It.IsAny<object?[]>(), default)).Returns(Task.CompletedTask);
+        var groupProxy = new Mock<IClientProxy>();
+        groupProxy.Setup(p => p.SendCoreAsync("ReceiveMessage", It.IsAny<object?[]>(), default)).Returns(Task.CompletedTask);
+        Mock.Get(hub.Clients).Setup(c => c.Group("Room_lobby")).Returns(groupProxy.Object);
 
-        await hub.SendMessage("hello world");
+        await hub.SendMessage("hello world", "lobby");
 
-        repo.Verify(r => r.AddMessageAsync(It.Is<ChatMessage>(m => m.Content == "hello world" && m.UserId == "u1")), Times.Once);
-        all.Verify(p => p.SendCoreAsync("ReceiveMessage", It.IsAny<object?[]>(), default), Times.Once);
+        repo.Verify(r => r.AddMessageAsync(It.Is<ChatMessage>(m => m.Content == "hello world" && m.UserId == "u1" && m.RoomId == "lobby")), Times.Once);
+        groupProxy.Verify(p => p.SendCoreAsync(
+            "ReceiveMessage",
+            It.Is<object?[]>(args => args.Length == 4 && (string)args[3] == "lobby"),
+            default), Times.Once);
     }
 
-    [Fact(DisplayName = "ChatHub: JoinChat adds to group and updates status"), Trait("Category","Unit"), Trait("Area","Web")]
-    public async Task JoinChat_Adds_To_Group_Updates_Status()
+    [Fact(DisplayName = "ChatHub: JoinRoom adds to group and updates status"), Trait("Category","Unit"), Trait("Area","Web")]
+    public async Task JoinRoom_Adds_To_Group_Updates_Status()
     {
         var (hub, repo, broker, user, clients, caller, all, groups) = CreateHub();
-        groups.Setup(g => g.AddToGroupAsync("conn-1", "ChatRoom", default)).Returns(Task.CompletedTask);
-        all.Setup(p => p.SendCoreAsync(It.IsAny<string>(), It.IsAny<object?[]>(), default)).Returns(Task.CompletedTask);
+        groups.Setup(g => g.AddToGroupAsync("conn-1", "Room_lobby", default)).Returns(Task.CompletedTask);
         var groupProxy = new Moq.Mock<IClientProxy>();
         groupProxy.Setup(p => p.SendCoreAsync(It.IsAny<string>(), It.IsAny<object?[]>(), default)).Returns(Task.CompletedTask);
-        clients.Setup(c => c.Group("ChatRoom")).Returns(groupProxy.Object);
+        clients.Setup(c => c.Group("Room_lobby")).Returns(groupProxy.Object);
 
-        await hub.JoinChat();
+        await hub.JoinRoom("lobby");
 
-        groups.Verify(g => g.AddToGroupAsync("conn-1", "ChatRoom", default), Times.Once);
+        groups.Verify(g => g.AddToGroupAsync("conn-1", "Room_lobby", default), Times.Once);
     }
 
     private static (ChatHub hub, Mock<IHubCallerClients> clients, Mock<ISingleClientProxy> caller, Mock<IClientProxy> all, 
@@ -167,11 +171,11 @@ public class ChatHubTests
         var (hub, _, caller, _, _) = CreateHubWithUser("john", null);
         caller.Setup(p => p.SendCoreAsync("ReceiveMessage", It.IsAny<object?[]>(), default)).Returns(Task.CompletedTask);
 
-        await hub.SendMessage("/stock=aapl");
+        await hub.SendMessage("/stock=aapl", "lobby");
 
         caller.Verify(p => p.SendCoreAsync(
             "ReceiveMessage",
-            It.Is<object?[]>(args => args.Length == 3 && args[0] != null && args[0] is string && (string)args[0] == "System" && args[1] != null && args[1] is string && ((string)args[1]).Contains("not configured")),
+            It.Is<object?[]>(args => args.Length == 4 && args[0] != null && args[0] is string && (string)args[0] == "System" && args[1] != null && args[1] is string && ((string)args[1]).Contains("not configured") && args[3] is string && (string)args[3] == "lobby"),
             default), Times.Once);
     }
 
@@ -179,15 +183,15 @@ public class ChatHubTests
     public async Task Broker_Throws_Sends_Service_Unavailable()
     {
         var broker = new Mock<IMessageBroker>();
-        broker.Setup(b => b.PublishStockCommandAsync("aapl", "john")).ThrowsAsync(new Exception("boom"));
+        broker.Setup(b => b.PublishStockCommandAsync("aapl", "john", "lobby")).ThrowsAsync(new Exception("boom"));
         var (hub, _, caller, _, _) = CreateHubWithUser("john", broker.Object);
         caller.Setup(p => p.SendCoreAsync("ReceiveMessage", It.IsAny<object?[]>(), default)).Returns(Task.CompletedTask);
 
-        await hub.SendMessage("/stock=aapl");
+        await hub.SendMessage("/stock=aapl", "lobby");
 
         caller.Verify(p => p.SendCoreAsync(
             "ReceiveMessage",
-            It.Is<object?[]>(args => args.Length == 3 && args[0] != null && args[0] is string && (string)args[0] == "System" && args[1] != null && args[1] is string && ((string)args[1]).Contains("unavailable")),
+            It.Is<object?[]>(args => args.Length == 4 && args[0] != null && args[0] is string && (string)args[0] == "System" && args[1] != null && args[1] is string && ((string)args[1]).Contains("unavailable") && args[3] is string && (string)args[3] == "lobby"),
             default), Times.Once);
     }
 
@@ -219,31 +223,32 @@ public class ChatHubTests
         clients.Setup(c => c.Group("ChatRoom")).Returns(groupProxy.Object);
         hub.Clients = clients.Object;
         var groups = new Mock<IGroupManager>();
-        groups.Setup(g => g.AddToGroupAsync(connId, "ChatRoom", default)).Returns(Task.CompletedTask);
+        groups.Setup(g => g.AddToGroupAsync(connId, "Room_lobby", default)).Returns(Task.CompletedTask);
         hub.Groups = groups.Object;
         hub.Context = context;
 
-        // Simulate user joining to populate static OnlineUsers
-        await hub.JoinChat();
+        // Simulate user joining to populate connections
+        await hub.JoinRoom("lobby");
         await hub.OnDisconnectedAsync(null);
 
         userMgr.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u => u.IsOnline == false)), Times.AtLeastOnce);
-        groupProxy.Verify(p => p.SendCoreAsync("UserLeft", It.Is<object?[]>(args => (string)args[0] == username), default), Times.Once);
+        groupProxy.Verify(p => p.SendCoreAsync("UserLeftRoom", It.Is<object?[]>(args => (string)args[0] == username), default), Times.Once);
     }
 
-    [Fact(DisplayName = "ChatHub: OnConnected triggers JoinChat"), Trait("Category","Unit"), Trait("Area","Web")]
-    public async Task OnConnected_Triggers_JoinChat()
+    [Fact(DisplayName = "ChatHub: OnConnected does not auto-join; JoinRoom required"), Trait("Category","Unit"), Trait("Area","Web")]
+    public async Task OnConnected_No_AutoJoin()
     {
         var (hub, _, _, all, groups) = CreateHubWithUser("john", new Mock<IMessageBroker>().Object);
-        groups.Setup(g => g.AddToGroupAsync("c1", "ChatRoom", default)).Returns(Task.CompletedTask);
-        all.Setup(p => p.SendCoreAsync(It.IsAny<string>(), It.IsAny<object?[]>(), default)).Returns(Task.CompletedTask);
+        groups.Setup(g => g.AddToGroupAsync("c1", "Room_lobby", default)).Returns(Task.CompletedTask);
         var groupProxy = new Mock<IClientProxy>();
         groupProxy.Setup(p => p.SendCoreAsync(It.IsAny<string>(), It.IsAny<object?[]>(), default)).Returns(Task.CompletedTask);
         var clients = Mock.Get(hub.Clients);
-        clients.Setup(c => c.Group("ChatRoom")).Returns(groupProxy.Object);
+        clients.Setup(c => c.Group("Room_lobby")).Returns(groupProxy.Object);
 
         await hub.OnConnectedAsync();
+        groups.Verify(g => g.AddToGroupAsync("c1", It.IsAny<string>(), default), Times.Never);
 
-        groups.Verify(g => g.AddToGroupAsync("c1", "ChatRoom", default), Times.Once);
+        await hub.JoinRoom("lobby");
+        groups.Verify(g => g.AddToGroupAsync("c1", "Room_lobby", default), Times.Once);
     }
 }
