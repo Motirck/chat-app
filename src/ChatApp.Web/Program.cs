@@ -112,7 +112,8 @@ using (var scope = app.Services.CreateScope())
     var context = scope.ServiceProvider.GetRequiredService<ChatDbContext>();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     
-    context.Database.EnsureCreated();
+    // Works for first-time users AND updates existing databases
+    context.Database.Migrate();
     
     // Create bot user if it doesn't exist
     await EnsureBotUserExists(userManager);

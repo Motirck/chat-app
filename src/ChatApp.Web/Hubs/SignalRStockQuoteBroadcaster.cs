@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.SignalR;
 namespace ChatApp.Web.Hubs;
 
 /// <summary>
-/// SignalR implementation of stock quote broadcasting
+/// SignalR implementation of stock quote broadcasting with room support
 /// </summary>
 public class SignalRStockQuoteBroadcaster : IStockQuoteBroadcaster
 {
@@ -15,8 +15,13 @@ public class SignalRStockQuoteBroadcaster : IStockQuoteBroadcaster
         _hubContext = hubContext;
     }
 
-    public async Task BroadcastStockQuoteAsync(string username, string quote, DateTime timestamp)
+    public async Task BroadcastStockQuoteAsync(string username, string quote, DateTime timestamp, string roomId)
     {
-        await _hubContext.Clients.All.SendAsync("ReceiveStockQuote", username, quote, timestamp);
+        // Send stock quote only to users in the specific room
+        await _hubContext.Clients.Group($"Room_{roomId}")
+            .SendAsync("ReceiveStockQuote", username, quote, timestamp, roomId);
     }
+
+    public Task BroadcastStockQuoteAsync(string username, string quote, DateTime timestamp)
+        => BroadcastStockQuoteAsync(username, quote, timestamp, "lobby");
 }

@@ -4,6 +4,7 @@ namespace ChatApp.Core.Interfaces;
 
 public interface IChatRepository
 {
-    Task<IEnumerable<ChatMessage>> GetLastMessagesAsync(int count = 50);
     Task<ChatMessage> AddMessageAsync(ChatMessage message);
+    Task<IEnumerable<ChatMessage>> GetLastMessagesAsync(int count, string? roomId = null);
+    Task<IEnumerable<ChatRoom>> GetAvailableRoomsAsync();
 }

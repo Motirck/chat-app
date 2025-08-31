@@ -62,27 +62,26 @@ public class StockQuoteHandlerService : BackgroundService
     }
 
     
-        private async Task HandleStockQuoteResponseAsync(StockQuoteDto stockQuote)
+    private async Task HandleStockQuoteResponseAsync(StockQuoteDto stockQuote)
     {
-        _logger.LogInformation("Processing stock quote response for {StockCode}", stockQuote.StockCode);
+        _logger.LogInformation("Processing stock quote response for {StockCode} in room {RoomId}", 
+            stockQuote.StockCode, stockQuote.RoomId);
         
         try
         {
             if (string.IsNullOrEmpty(stockQuote.Quote))
             {
-                _logger.LogWarning("Received empty stock quote for {StockCode}", stockQuote.StockCode);
+                _logger.LogWarning("Received empty stock quote for {StockCode} in room {RoomId}", 
+                    stockQuote.StockCode, stockQuote.RoomId);
                 return;
             }
 
-            // Create a new scope for this operation
             using var scope = _serviceProvider.CreateScope();
             
-            // Get services from the scope
             var chatRepository = scope.ServiceProvider.GetRequiredService<IChatRepository>();
             var broadcaster = scope.ServiceProvider.GetRequiredService<IStockQuoteBroadcaster>();
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
             
-            // Get the bot user
             var botUser = await userManager.FindByNameAsync("StockBot");
             if (botUser == null)
             {
@@ -90,26 +89,27 @@ public class StockQuoteHandlerService : BackgroundService
                 return;
             }
             
-            // Save stock quote as a chat message with bot user ID
             var chatMessage = new ChatMessage
             {
                 Content = stockQuote.Quote,
                 Username = "StockBot",
                 UserId = botUser.Id,
+                RoomId = stockQuote.RoomId, // Set room ID
                 Timestamp = DateTime.UtcNow,
                 IsStockQuote = true
             };
             
             await chatRepository.AddMessageAsync(chatMessage);
-            _logger.LogInformation("Stock quote message saved to database");
+            _logger.LogInformation("Stock quote message saved to database for room {RoomId}", stockQuote.RoomId);
             
-            // Delegate broadcasting to Web layer implementation
-            await broadcaster.BroadcastStockQuoteAsync("StockBot", stockQuote.Quote, chatMessage.Timestamp);
-            _logger.LogInformation("Stock quote broadcasted to all clients");
+            // Broadcast to a specific room
+            await broadcaster.BroadcastStockQuoteAsync("StockBot", stockQuote.Quote, chatMessage.Timestamp, stockQuote.RoomId);
+            _logger.LogInformation("Stock quote broadcasted to room {RoomId}", stockQuote.RoomId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing stock quote response for {StockCode}", stockQuote.StockCode);
+            _logger.LogError(ex, "Error processing stock quote response for {StockCode} in room {RoomId}", 
+                stockQuote.StockCode, stockQuote.RoomId);
         }
     }
 }

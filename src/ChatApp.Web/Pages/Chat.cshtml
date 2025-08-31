@@ -70,6 +70,34 @@
 
     <!-- Online Users & Info -->
     <div class="lg:col-span-1">
+        <!-- Rooms List -->
+        <div class="rounded-xl border border-gray-200 bg-white shadow dark:border-gray-700 dark:bg-gray-800 mb-4">
+            <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                <h6 class="m-0 font-semibold flex items-center gap-2">
+                    <i class="fas fa-door-open"></i>Rooms
+                </h6>
+            </div>
+            <div class="p-2">
+                <ul class="space-y-1 m-0" id="roomsList">
+                    @foreach (var room in Model.AvailableRooms)
+                    {
+                        var isActive = room.Id == Model.CurrentRoomId ? "active-room" : string.Empty;
+                        <li>
+                            <a class="room-link flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700/50 @isActive"
+                               href="?room=@room.Id" data-room-id="@room.Id">
+                                <i class="fas fa-hashtag text-gray-500"></i>
+                                <span>@room.Name</span>
+                                @if (room.Id == Model.CurrentRoomId)
+                                {
+                                    <span class="ml-auto text-xs text-brand">(current)</span>
+                                }
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+
         <div class="rounded-xl border border-gray-200 bg-white shadow dark:border-gray-700 dark:bg-gray-800 mb-4">
             <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                 <h6 class="m-0 font-semibold flex items-center gap-2">
@@ -130,11 +158,12 @@
 
 @section Scripts {
     <script>
-        // SignalR Chat Implementation
+        // SignalR Chat Implementation (multi-room)
         const connection = new signalR.HubConnectionBuilder()
             .withUrl("/chatHub")
             .build();
 
+        const currentRoomId = "@Model.CurrentRoomId";
         const messageInput = document.getElementById("messageInput");
         const sendButton = document.getElementById("sendButton");
         const messagesList = document.getElementById("messagesList");
@@ -188,6 +217,8 @@
         // Start SignalR connection
         connection.start().then(function () {
             statusElement.textContent = "Connected to chat!";
+            // Join the selected room
+            connection.invoke("JoinRoom", currentRoomId);
             setTimeout(() => {
                 connectionStatus.style.display = 'none';
             }, 3000);
@@ -197,8 +228,9 @@
             statusElement.textContent = "Connection failed. Please refresh the page.";
         });
 
-        // Handle incoming messages
-        connection.on("ReceiveMessage", function (username, message, timestamp) {
+        // Handle incoming messages (room-scoped)
+        connection.on("ReceiveMessage", function (username, message, timestamp, roomId) {
+            if (roomId !== currentRoomId) return;
             const messageDiv = document.createElement("div");
             messageDiv.className = "message mb-2";
             
@@ -219,14 +251,14 @@
             scrollToBottom();
         });
 
-        // Handle user joined
-        connection.on("UserJoined", function (username) {
-            addSystemMessage(`${username} joined the chat`);
+        // Handle user joined (room-scoped)
+        connection.on("UserJoinedRoom", function (username) {
+            addSystemMessage(`${username} joined the room`);
         });
 
-        // Handle user left
-        connection.on("UserLeft", function (username) {
-            addSystemMessage(`${username} left the chat`);
+        // Handle user left (room-scoped)
+        connection.on("UserLeftRoom", function (username) {
+            addSystemMessage(`${username} left the room`);
         });
 
         // Handle online users update
@@ -234,8 +266,9 @@
             updateOnlineUsersList(users);
         });
 
-        // Handle stock quotes
-        connection.on("ReceiveStockQuote", function (username, quote, timestamp) {
+        // Handle stock quotes (room-scoped)
+        connection.on("ReceiveStockQuote", function (username, quote, timestamp, roomId) {
+            if (roomId !== currentRoomId) return;
             const messageDiv = document.createElement("div");
             messageDiv.className = "message mb-2 stock-quote";
 
@@ -277,10 +310,10 @@
                 clearTimeout(typingTimer);
                 if (isTyping) {
                     isTyping = false;
-                    connection.invoke("UserStoppedTyping");
+                    connection.invoke("UserStoppedTyping", currentRoomId);
                 }
 
-                connection.invoke("SendMessage", message);
+                connection.invoke("SendMessage", message, currentRoomId);
                 messageInput.value = "";
             }
         }
@@ -318,13 +351,13 @@
         messageInput.addEventListener("input", function() {
             if (!isTyping) {
                 isTyping = true;
-                connection.invoke("UserTyping");
+                connection.invoke("UserTyping", currentRoomId);
             }
 
             clearTimeout(typingTimer);
             typingTimer = setTimeout(() => {
                 isTyping = false;
-                connection.invoke("UserStoppedTyping");
+                connection.invoke("UserStoppedTyping", currentRoomId);
             }, 1000); // Stop typing after 1 second of inactivity
         });
 

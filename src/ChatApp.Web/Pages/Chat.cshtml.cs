@@ -3,11 +3,12 @@ using ChatApp.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ChatApp.Web.Pages;
 
 /// <summary>
-/// Chat room page that displays real-time messaging interface
+/// Chat room page that displays real-time messaging interface with multi-room support
 /// </summary>
 [Authorize]
 public class ChatModel : PageModel
@@ -27,15 +28,20 @@ public class ChatModel : PageModel
     }
 
     public IEnumerable<ChatMessage> RecentMessages { get; set; } = new List<ChatMessage>();
+    public IEnumerable<ChatRoom> AvailableRooms { get; set; } = new List<ChatRoom>();
+    public string CurrentRoomId { get; set; } = "lobby";
     public ApplicationUser? CurrentUser { get; set; }
 
     /// <summary>
     /// Loads the chat page with recent messages and user information
     /// </summary>
-    public async Task OnGetAsync()
+    public async Task OnGetAsync([FromQuery] string? room)
     {
         try
         {
+            // Determine current room
+            CurrentRoomId = string.IsNullOrWhiteSpace(room) ? "lobby" : room;
+
             // Get current user
             CurrentUser = await _userManager.GetUserAsync(User);
             
@@ -46,16 +52,18 @@ public class ChatModel : PageModel
                 CurrentUser.LastLoginAt = DateTime.UtcNow;
                 await _userManager.UpdateAsync(CurrentUser);
 
-                _logger.LogInformation("User {Username} accessed chat room", CurrentUser.UserName);
+                _logger.LogInformation("User {Username} accessed chat room {RoomId}", CurrentUser.UserName, CurrentRoomId);
             }
 
-            // Load recent messages
-            RecentMessages = await _chatRepository.GetLastMessagesAsync(50);
+            // Load rooms and recent messages for the selected room
+            AvailableRooms = await _chatRepository.GetAvailableRoomsAsync();
+            RecentMessages = await _chatRepository.GetLastMessagesAsync(50, CurrentRoomId);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading chat page for user {UserId}", User.Identity?.Name);
             RecentMessages = new List<ChatMessage>();
+            AvailableRooms = new List<ChatRoom>();
         }
     }
 }

@@ -49,7 +49,7 @@ Key ideas:
 - ChatApp.Web provides the UI and SignalR hub for real-time chat and quote broadcasting.
 - Users submit messages; stock commands are offloaded via IMessageBroker to RabbitMQ.
 - ChatApp.Bot consumes commands, fetches quotes from Stooq (via Flurl.Http), and publishes results back.
-- The web app receives stock quote events and broadcasts them through SignalR to all connected clients.
+- The web app receives stock quote events and broadcasts them through SignalR to users in the specific chat room (Room_{roomId}).
 - Persistence: EF Core (SQLite) stores users and chat history. Identity handles authN/authZ.
 
 
@@ -91,15 +91,15 @@ Key ideas:
 User -> SignalR -> ChatHub.SendMessage(message)
   - Validates identity
   - Persists ChatMessage via IChatRepository (scoped from DI)
-  - Broadcasts via Clients.All.SendAsync("ReceiveMessage", username, message, timestamp)
+  - Broadcasts to the current room via Clients.Group($"Room_{roomId}").SendAsync("ReceiveMessage", username, message, timestamp, roomId)
 ```
 
 Data Path:
 - Web client sends message to SignalR hub.
 - Hub saves message to database via repository (Infrastructure).
-- Hub broadcasts message to all connected clients.
+- Hub broadcasts the message only to members of the selected room (Room_{roomId}).
 
-### 3.2 Stock Command Flow
+### 3.2 Stock Command Flow (room-aware)
 
 ```
 User types: /stock=AAPL
@@ -117,7 +117,7 @@ ChatApp.Web subscribes to stock quote events (StockQuoteHandlerService)
     - Validates and converts to message
     - Uses IStockQuoteBroadcaster to broadcast
 
-SignalRStockQuoteBroadcaster -> Clients.All.SendAsync("ReceiveStockQuote", botUsername, quote, timestamp)
+SignalRStockQuoteBroadcaster -> Clients.Group($"Room_{roomId}").SendAsync("ReceiveStockQuote", botUsername, quote, timestamp, roomId)
 ```
 
 Notes:
@@ -126,10 +126,10 @@ Notes:
 
 ### 3.3 Online Users Tracking
 
-- ChatHub keeps a static concurrent dictionary mapping connectionId -> username.
+- ChatHub keeps a static concurrent dictionary mapping connectionId -> (username, roomId).
 - On connection join/leave:
   - Adds/removes entries and updates ApplicationUser.IsOnline in database when appropriate.
-  - Broadcasts UserJoined/UserLeft and UpdateOnlineUsers to the ChatRoom group.
+  - Broadcasts UserJoinedRoom/UserLeftRoom and UpdateOnlineUsers to the specific room group (Room_{roomId}).
 
 
 ## 4. Key Components (with code references)
@@ -139,19 +139,19 @@ Notes:
 - SendMessage:
   - Detects `/stock=` commands and delegates to IMessageBroker.
   - Persists normal messages through IChatRepository.
-  - Broadcasts ReceiveMessage to all clients.
-- JoinChat / OnConnectedAsync / OnDisconnectedAsync:
+  - Broadcasts ReceiveMessage to the user’s current room only (Room_{roomId}).
+- JoinRoom / OnConnectedAsync / OnDisconnectedAsync:
   - Manages online users and emits notifications.
 
 ### 4.2 SignalRStockQuoteBroadcaster (ChatApp.Web/Hubs/SignalRStockQuoteBroadcaster.cs)
 - Implements IStockQuoteBroadcaster.
-- Broadcasts stock quotes to all connected clients using hub context.
+- Broadcasts stock quotes to users in a specific room using hub context (Clients.Group($"Room_{roomId}")), with a backward-compatible overload defaulting to "lobby".
 
 ### 4.3 Infrastructure Services (inferred by tests)
 - ChatRepository: Saves/fetches ChatMessage.
 - StockService: Calls Stooq API using Flurl.Http.
-- RabbitMqMessageBroker: Publishes and consumes commands/events.
-- StockQuoteHandlerService: Listens for quote events and pushes to IStockQuoteBroadcaster.
+- RabbitMqMessageBroker: Publishes and consumes commands/events using topic routing keys (room.{roomId}.commands / room.{roomId}.quotes) and supports wildcard subscription for all rooms (room.*.{type}).
+- StockQuoteHandlerService: Listens for quote events, saves them with RoomId, and pushes to IStockQuoteBroadcaster (uses 3-arg overload by default which targets the "lobby" for backward compatibility).
 
 
 ## 5. Data Model (Domain-level)
@@ -160,7 +160,9 @@ Core Entities (expected):
 - ApplicationUser
   - IdentityUser fields + IsOnline (bool) used by hub to track status.
 - ChatMessage
-  - Id, UserId, Username, Content, Timestamp, IsStockQuote.
+  - Id, UserId, Username, Content, Timestamp, IsStockQuote, RoomId (string).
+- ChatRoom
+  - Id (string), Name, CreatedAt; used for room membership and grouping in SignalR (group name pattern: Room_{roomId}).
 
 Storage: SQLite database via EF Core.
 
@@ -178,13 +180,17 @@ Interfaces (Core):
 - IChatRepository
   - AddMessageAsync, GetRecentAsync, etc.
 - IMessageBroker
-  - PublishStockCommandAsync(stockCode, requestedBy)
-  - PublishStockQuoteAsync(quoteDto)
-  - SubscribeStockCommands / SubscribeStockQuotes (implementation-specific in Infrastructure)
+  - PublishStockCommandAsync(stockCode, username, roomId)
+  - PublishStockCommandAsync(stockCode, username) // backward-compatible, defaults to "lobby"
+  - PublishStockQuoteAsync(stockCode, quote, username, roomId)
+  - PublishStockQuoteAsync(stockCode, quote, username) // backward-compatible, defaults to "lobby"
+  - SubscribeAsync<T>(handler) // subscribes to all rooms (wildcard)
+  - SubscribeToRoomAsync<T>(roomId, handler)
 - IStockService
   - GetQuoteAsync(symbol)
 - IStockQuoteBroadcaster
-  - BroadcastStockQuoteAsync(username, quoteText, timestamp)
+  - BroadcastStockQuoteAsync(username, quoteText, timestamp, roomId)
+  - BroadcastStockQuoteAsync(username, quoteText, timestamp) // backward-compatible, defaults to "lobby"
 
 Event payloads (DTOs):
 - StockQuoteDto: symbol, price, when, provider, errors.
@@ -198,6 +204,7 @@ Event payloads (DTOs):
   - Validators in Core (FluentValidation)
   - Repository and broker lifecycle in Infrastructure
   - StockService integration (HTTP call parsing)
+  - Integration tests validate per-room routing (commands and quotes scoped by roomId)
 - Integration tests validate the full stock command flow through RabbitMQ boundaries.
 
 
@@ -253,35 +260,42 @@ Event payloads (DTOs):
          |                                ^
          | implements                     |
          v                                |
-+--------+---------+            +---------+---------+
-| ChatApp.Infrastructure|<------+   ChatApp.Bot     |
-| - EF Core/Identity    | uses  | - Background Svc  |
-| - RabbitMQ Client     |       | - Uses Core       |
-| - HTTP Integrations   |       +-------------------+
-+-----------------------+
++--------+---------------------------+    +---------+---------+
+| ChatApp.Infrastructure             |<---+   ChatApp.Bot     |
+| - EF Core/Identity                | uses| - Background Svc  |
+| - RabbitMQ Client (Topic Exchange)|     | - Uses Core       |
+|   Exchange: chat.topic            |     +-------------------+
+|   Routing: room.{roomId}.(type)   |
+|   Wildcard: room.*.(type)         |
+| - HTTP Integrations               |
++-----------------------------------+
 ```
 
-### 13.2 Sequence: Stock Command
+### 13.2 Sequence: Stock Command (room-aware)
 ```
-User           ChatHub           IMessageBroker        Bot Worker       StockService      QuoteHandler     Broadcaster     Clients
- |   /stock=AAPL  |                      |                  |                |                 |               |              |
- |--------------->|                      |                  |                |                 |               |              |
- |                | Publish stock cmd    |                  |                |                 |               |              |
- |                |--------------------->|                  |                |                 |               |              |
- |  Ack caller    |                      |                  |                |                 |               |              |
- |<---------------|                      |                  |                |                 |               |              |
- |                |                      | Cmd received     |                |                 |               |              |
- |                |                      |----------------->|                |                 |               |              |
- |                |                      |                  | Get quote      |                 |               |              |
- |                |                      |                  |--------------->|                 |               |              |
- |                |                      |                  |  Quote DTO     |                 |               |              |
- |                |                      |                  |<---------------|                 |               |              |
- |                |                      | Publish event    |                |                 |               |              |
- |                |                      |<-----------------|                |                 |               |              |
- |                |                      |                  |                | Quote consumed  |               |              |
- |                |                      |                  |                |---------------->|               |              |
- |                |                      |                  |                |                 | Broadcast     |              |
- |                |                      |                  |                |                 |-------------> |-------------->
+User           ChatHub           IMessageBroker (Topic: chat.topic)    Bot Worker       StockService      QuoteHandler     Broadcaster     Clients
+ |   /stock=AAPL  |                      |                                |                |                 |               |              |
+ |--------------->|                      |                                |                |                 |               |              |
+ |                | Publish stock cmd    | routing: room.{room}.commands  |                |                 |               |              |
+ |                |--------------------->|-------------------------------->|                |                 |               |              |
+ |  Ack caller    |                      |                                |                |                 |               |              |
+ |<---------------|                      |                                |                |                 |               |              |
+ |                |                      | Cmd received                   |                |                 |               |              |
+ |                |                      |------------------------------->|                |                 |               |              |
+ |                |                      |                                | Get quote      |                 |               |              |
+ |                |                      |                                |--------------->|                 |               |              |
+ |                |                      |                                |  Quote DTO     |                 |               |              |
+ |                |                      |                                |<---------------|                 |               |              |
+ |                |                      | Publish event                  |                |                 |               |              |
+ |                |                      |<-------------------------------| routing: room.{room}.quotes       |               |              |
+ |                |                      |                                |                | Quote consumed  |               |              |
+ |                |                      |                                |                |---------------->|               |              |
+ |                |                      |                                |                |                 | Broadcast     |              |
+ |                |                      |                                |                |                 |-------------> |-------------->
+
+Notes:
+- SubscribeAsync uses wildcard routing key room.*.commands (and quotes) so the Bot and QuoteHandler can listen to all rooms.
+- SubscribeToRoomAsync binds to room.{roomId}.(commands|quotes) for a specific room.
 ```
 
 

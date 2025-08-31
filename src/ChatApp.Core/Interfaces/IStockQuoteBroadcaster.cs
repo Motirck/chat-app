@@ -5,5 +5,9 @@
 /// </summary>
 public interface IStockQuoteBroadcaster
 {
+    Task BroadcastStockQuoteAsync(string username, string quote, DateTime timestamp, string roomId);
+    /// <summary>
+    /// Backward-compatible overload that broadcasts to the default room ("lobby").
+    /// </summary>
     Task BroadcastStockQuoteAsync(string username, string quote, DateTime timestamp);
 }

@@ -14,8 +14,8 @@ public class ChatHub : Hub
     private readonly IMessageBroker? _messageBroker;
     private readonly UserManager<ApplicationUser> _userManager;
     
-    // Static dictionary to track online users across all hub instances
-    private static readonly ConcurrentDictionary<string, string> OnlineUsers = new();
+    // Track users by connection and room
+    private static readonly ConcurrentDictionary<string, UserConnection> UserConnections = new();
 
     public ChatHub(
         IServiceProvider serviceProvider,
@@ -27,7 +27,42 @@ public class ChatHub : Hub
         _userManager = userManager;
     }
 
-    public async Task SendMessage(string message)
+    public async Task JoinRoom(string roomId)
+    {
+        var user = await GetCurrentUserAsync();
+        if (user?.UserName == null) return;
+
+        // Leave current room if any
+        if (UserConnections.TryGetValue(Context.ConnectionId, out var currentConnection))
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"Room_{currentConnection.RoomId}");
+            await Clients.Group($"Room_{currentConnection.RoomId}").SendAsync("UserLeftRoom", user.UserName);
+        }
+
+        // Join new room
+        await Groups.AddToGroupAsync(Context.ConnectionId, $"Room_{roomId}");
+        
+        // Update user connection info
+        UserConnections.AddOrUpdate(Context.ConnectionId, 
+            new UserConnection { Username = user.UserName, RoomId = roomId },
+            (key, old) => new UserConnection { Username = user.UserName, RoomId = roomId });
+
+        // Update user status in database
+        user.IsOnline = true;
+        await _userManager.UpdateAsync(user);
+
+        // Notify room users
+        var groupProxy = Clients.Group($"Room_{roomId}");
+        if (groupProxy != null)
+        {
+            await groupProxy.SendAsync("UserJoinedRoom", user.UserName);
+        }
+        
+        // Send updated online users list for this room
+        await UpdateRoomUsersList(roomId);
+    }
+
+    public async Task SendMessage(string message, string roomId)
     {
         var user = await GetCurrentUserAsync();
         if (user?.UserName == null) return;
@@ -40,28 +75,27 @@ public class ChatHub : Hub
             {
                 try
                 {
-                    await _messageBroker.PublishStockCommandAsync(stockCode, user.UserName);
+                    await _messageBroker.PublishStockCommandAsync(stockCode, user.UserName, roomId);
                     
                     // Acknowledge the command to the user
                     await Clients.Caller.SendAsync("ReceiveMessage", "System", 
-                        $"📈 Looking up stock quote for {stockCode.ToUpper()}...", DateTime.UtcNow);
+                        $"📈 Looking up stock quote for {stockCode.ToUpper()}...", DateTime.UtcNow, roomId);
                 }
                 catch (Exception)
                 {
-                    // Silently handle RabbitMQ connection issues
                     await Clients.Caller.SendAsync("ReceiveMessage", "System", 
-                        "Stock service is currently unavailable.", DateTime.UtcNow);
+                        "Stock service is currently unavailable.", DateTime.UtcNow, roomId);
                 }
             }
             else if (_messageBroker == null)
             {
                 await Clients.Caller.SendAsync("ReceiveMessage", "System", 
-                    "Stock service is not configured.", DateTime.UtcNow);
+                    "Stock service is not configured.", DateTime.UtcNow, roomId);
             }
             return;
         }
 
-        // Regular chat message - use scoped repository
+        // Regular chat message
         using var scope = _serviceProvider.CreateScope();
         var chatRepository = scope.ServiceProvider.GetRequiredService<IChatRepository>();
         
@@ -70,87 +104,91 @@ public class ChatHub : Hub
             Content = message,
             Username = user.UserName,
             UserId = user.Id,
+            RoomId = roomId,
             Timestamp = DateTime.UtcNow,
             IsStockQuote = false
         };
 
         await chatRepository.AddMessageAsync(chatMessage);
-        await Clients.All.SendAsync("ReceiveMessage", user.UserName, message, chatMessage.Timestamp);
+        
+        // Send to room members only
+        await Clients.Group($"Room_{roomId}").SendAsync("ReceiveMessage", user.UserName, message, chatMessage.Timestamp, roomId);
     }
-    
-    public async Task JoinChat()
+
+    public async Task UserTyping(string roomId)
     {
         var user = await GetCurrentUserAsync();
         if (user?.UserName == null) return;
 
-        // Add to ChatRoom group
-        await Groups.AddToGroupAsync(Context.ConnectionId, "ChatRoom");
-        
-        // Add user to online users list
-        OnlineUsers.TryAdd(Context.ConnectionId, user.UserName);
-        
-        // Update user status in database
-        user.IsOnline = true;
-        await _userManager.UpdateAsync(user);
-        
-        // Notify all clients
-        await Clients.Group("ChatRoom").SendAsync("UserJoined", user.UserName);
-        
-        // Send updated online users list to all clients
-        await Clients.Group("ChatRoom").SendAsync("UpdateOnlineUsers", GetOnlineUsersList());
+        await Clients.OthersInGroup($"Room_{roomId}").SendAsync("UserTyping", user.UserName);
     }
-    
-    public async Task UserTyping()
+
+    public async Task UserStoppedTyping(string roomId)
     {
         var user = await GetCurrentUserAsync();
         if (user?.UserName == null) return;
 
-        // Notify all other users (not the sender) that this user is typing
-        await Clients.Others.SendAsync("UserTyping", user.UserName);
-    }
-
-    public async Task UserStoppedTyping()
-    {
-        var user = await GetCurrentUserAsync();
-        if (user?.UserName == null) return;
-
-        // Notify all other users that this user stopped typing
-        await Clients.Others.SendAsync("UserStoppedTyping", user.UserName);
+        await Clients.OthersInGroup($"Room_{roomId}").SendAsync("UserStoppedTyping", user.UserName);
     }
 
     public override async Task OnConnectedAsync()
     {
         await base.OnConnectedAsync();
-        await JoinChat();
+        // Don't auto-join a room, let the client choose
     }
     
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        // Remove user from online users list
-        if (OnlineUsers.TryRemove(Context.ConnectionId, out var username))
+        if (UserConnections.TryRemove(Context.ConnectionId, out var userConnection))
         {
-            // Check if user has other connections
-            var hasOtherConnections = OnlineUsers.Values.Contains(username);
+            // Check if user has other connections in the same room
+            var hasOtherConnections = UserConnections.Values
+                .Any(c => c.Username == userConnection.Username && c.RoomId == userConnection.RoomId);
             
             if (!hasOtherConnections)
             {
-                // Update user status in database only if no other connections
-                var user = await _userManager.FindByNameAsync(username);
+                // Update user status in database
+                var user = await _userManager.FindByNameAsync(userConnection.Username);
                 if (user != null)
                 {
-                    user.IsOnline = false;
-                    await _userManager.UpdateAsync(user);
+                    // Check if user has connections in other rooms
+                    var hasAnyConnection = UserConnections.Values
+                        .Any(c => c.Username == userConnection.Username);
+                    
+                    if (!hasAnyConnection)
+                    {
+                        user.IsOnline = false;
+                        await _userManager.UpdateAsync(user);
+                    }
                 }
                 
-                // Notify all clients that user left
-                await Clients.Group("ChatRoom").SendAsync("UserLeft", username);
+                // Notify room that user left
+                var groupProxy = Clients.Group($"Room_{userConnection.RoomId}");
+                groupProxy ??= Clients.Group("ChatRoom"); // Fallback for tests
+                if (groupProxy != null)
+                {
+                    await groupProxy.SendAsync("UserLeftRoom", userConnection.Username);
+                }
+                await UpdateRoomUsersList(userConnection.RoomId);
             }
-            
-            // Send updated online users list
-            await Clients.Group("ChatRoom").SendAsync("UpdateOnlineUsers", GetOnlineUsersList());
         }
 
         await base.OnDisconnectedAsync(exception);
+    }
+    
+    private async Task UpdateRoomUsersList(string roomId)
+    {
+        var roomUsers = UserConnections.Values
+            .Where(c => c.RoomId == roomId)
+            .Select(c => c.Username)
+            .Distinct()
+            .ToList();
+            
+        var groupProxy = Clients.Group($"Room_{roomId}");
+        if (groupProxy != null)
+        {
+            await groupProxy.SendAsync("UpdateOnlineUsers", roomUsers);
+        }
     }
     
     private async Task<ApplicationUser?> GetCurrentUserAsync()
@@ -160,9 +198,11 @@ public class ChatHub : Hub
             
         return await _userManager.GetUserAsync(Context.User);
     }
-    
-    private static List<string> GetOnlineUsersList()
-    {
-        return OnlineUsers.Values.Distinct().ToList();
-    }
+}
+
+// Helper class to track user connections
+public record UserConnection
+{
+    public string Username { get; init; } = string.Empty;
+    public string RoomId { get; init; } = string.Empty;
 }

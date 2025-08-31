@@ -13,26 +13,14 @@ public class RabbitMqMessageBroker : IMessageBroker, IDisposable
     private readonly RabbitMqOptions _options;
     private IConnection? _connection;
     private IChannel? _channel;
-    private const string StockCommandQueue = "stock_commands";
-    private const string StockQuoteQueue = "stock_quotes";
+    private const string ChatExchange = "chat.topic";
+    private const string DefaultRoom = "lobby";
 
-    /// <summary>
-    /// Initializes the RabbitMQ message broker with connection settings.
-    /// Connection is established lazily when first needed.
-    /// </summary>
-    /// <param name="options">RabbitMQ connection configuration options</param>
     public RabbitMqMessageBroker(IOptions<RabbitMqOptions> options)
     {
         _options = options.Value;
-
-        // Debug: Print what configuration we received
-        Console.WriteLine(
-            $"RabbitMQ Broker Config - Host: {_options.HostName}, Port: {_options.Port}, User: {_options.UserName}");
     }
 
-    /// <summary>
-    /// Establishes connection to RabbitMQ and declares required queues
-    /// </summary>
     private async Task EnsureConnectionAsync()
     {
         if (_connection != null && _connection.IsOpen && _channel != null)
@@ -40,8 +28,6 @@ public class RabbitMqMessageBroker : IMessageBroker, IDisposable
 
         try
         {
-            Console.WriteLine($"Connecting to RabbitMQ at {_options.HostName}:{_options.Port}...");
-
             var factory = new ConnectionFactory()
             {
                 HostName = _options.HostName,
@@ -53,9 +39,7 @@ public class RabbitMqMessageBroker : IMessageBroker, IDisposable
             _connection = await factory.CreateConnectionAsync();
             _channel = await _connection.CreateChannelAsync();
 
-            Console.WriteLine("Connected to RabbitMQ successfully!");
-
-            await DeclareQueues();
+            await DeclareExchange();
         }
         catch (Exception ex)
         {
@@ -64,73 +48,99 @@ public class RabbitMqMessageBroker : IMessageBroker, IDisposable
         }
     }
 
-    private async Task DeclareQueues()
+    private async Task DeclareExchange()
     {
         if (_channel == null)
             throw new InvalidOperationException("Channel is not initialized");
 
-        await _channel.QueueDeclareAsync(queue: StockCommandQueue,
+        // Declare topic exchange
+        await _channel.ExchangeDeclareAsync(
+            exchange: ChatExchange,
+            type: ExchangeType.Topic,
             durable: true,
-            exclusive: false,
             autoDelete: false,
             arguments: null);
 
-        await _channel.QueueDeclareAsync(queue: StockQuoteQueue,
-            durable: true,
-            exclusive: false,
-            autoDelete: false,
-            arguments: null);
-
-        Console.WriteLine("RabbitMQ queues declared successfully!");
+        Console.WriteLine("RabbitMQ topic exchange declared successfully!");
     }
 
-    public async Task PublishStockCommandAsync(string stockCode, string username)
+    public async Task PublishStockCommandAsync(string stockCode, string username, string roomId)
     {
         await EnsureConnectionAsync();
 
         if (_channel == null)
             throw new InvalidOperationException("RabbitMQ channel is not available");
 
-        var message = new { StockCode = stockCode, Username = username, Timestamp = DateTime.UtcNow };
+        var message = new { StockCode = stockCode, Username = username, RoomId = roomId, Timestamp = DateTime.UtcNow };
         var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message));
+        var routingKey = $"room.{roomId}.commands";
 
-        Console.WriteLine($"DEBUG: Publishing stock command - StockCode: {stockCode}, Username: {username}");
-
-        await _channel.BasicPublishAsync(exchange: "",
-            routingKey: StockCommandQueue,
+        await _channel.BasicPublishAsync(
+            exchange: ChatExchange,
+            routingKey: routingKey,
             body: body,
             mandatory: false);
 
-        Console.WriteLine($"DEBUG: Stock command published to queue: {StockCommandQueue}");
+        Console.WriteLine($"Published stock command to room {roomId}");
     }
 
-    public async Task PublishStockQuoteAsync(string stockCode, string quote, string username)
+    public Task PublishStockCommandAsync(string stockCode, string username)
+        => PublishStockCommandAsync(stockCode, username, DefaultRoom);
+
+    public async Task PublishStockQuoteAsync(string stockCode, string quote, string username, string roomId)
     {
         await EnsureConnectionAsync();
 
         if (_channel == null)
             throw new InvalidOperationException("RabbitMQ channel is not available");
 
-        var message = new { StockCode = stockCode, Quote = quote, Username = username, Timestamp = DateTime.UtcNow };
+        var message = new
+            { StockCode = stockCode, Quote = quote, Username = username, RoomId = roomId, Timestamp = DateTime.UtcNow };
         var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message));
+        var routingKey = $"room.{roomId}.quotes";
 
-        Console.WriteLine(
-            $"DEBUG: Publishing stock quote - StockCode: {stockCode}, Quote: {quote}, Username: {username}");
-
-        await _channel.BasicPublishAsync(exchange: "",
-            routingKey: StockQuoteQueue,
+        await _channel.BasicPublishAsync(
+            exchange: ChatExchange,
+            routingKey: routingKey,
             body: body,
             mandatory: false);
 
-        Console.WriteLine($"DEBUG: Stock quote published to queue: {StockQuoteQueue}");
+        Console.WriteLine($"Published stock quote to room {roomId}");
     }
+
+    public Task PublishStockQuoteAsync(string stockCode, string quote, string username)
+        => PublishStockQuoteAsync(stockCode, quote, username, DefaultRoom);
 
     public async Task SubscribeAsync<T>(Func<T, Task> handler) where T : class
     {
+        // Subscribe to all rooms
+        await SubscribeToRoomAsync("*", handler);
+    }
+
+    public async Task SubscribeToRoomAsync<T>(string roomId, Func<T, Task> handler) where T : class
+    {
         await EnsureConnectionAsync();
 
         if (_channel == null)
             throw new InvalidOperationException("RabbitMQ channel is not available");
+
+        var messageType = typeof(T).Name.Contains("Command") ? "commands" : "quotes";
+        var routingKey = roomId == "*" ? $"room.*.{messageType}" : $"room.{roomId}.{messageType}";
+        var queueName = $"{typeof(T).Name}_{roomId}_{Guid.NewGuid()}";
+
+        // Declare queue
+        await _channel.QueueDeclareAsync(
+            queue: queueName,
+            durable: false,
+            exclusive: true,
+            autoDelete: true,
+            arguments: null);
+
+        // Bind queue to exchange with routing key
+        await _channel.QueueBindAsync(
+            queue: queueName,
+            exchange: ChatExchange,
+            routingKey: routingKey);
 
         var consumer = new AsyncEventingBasicConsumer(_channel);
         consumer.ReceivedAsync += async (model, ea) =>
@@ -138,58 +148,39 @@ public class RabbitMqMessageBroker : IMessageBroker, IDisposable
             var body = ea.Body.ToArray();
             var message = Encoding.UTF8.GetString(body);
 
-            Console.WriteLine($"DEBUG: Received message from queue: {ea.RoutingKey}");
-            Console.WriteLine($"DEBUG: Message content: {message}");
-
             try
             {
                 var deserializedMessage = JsonSerializer.Deserialize<T>(message);
                 if (deserializedMessage != null)
                 {
-                    Console.WriteLine($"DEBUG: Successfully deserialized message of type {typeof(T).Name}");
                     await handler(deserializedMessage);
-                    Console.WriteLine($"DEBUG: Handler completed for message type {typeof(T).Name}");
-                }
-                else
-                {
-                    Console.WriteLine($"DEBUG: Failed to deserialize message to {typeof(T).Name}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"DEBUG: Error processing message: {ex.Message}");
-                Console.WriteLine($"DEBUG: Exception details: {ex}");
+                Console.WriteLine($"Error processing message: {ex.Message}");
             }
         };
 
-        var queueName = typeof(T).Name.Contains("Command") ? StockCommandQueue : StockQuoteQueue;
-        await _channel.BasicConsumeAsync(queue: queueName,
+        await _channel.BasicConsumeAsync(
+            queue: queueName,
             autoAck: true,
             consumer: consumer);
 
-        Console.WriteLine($"Subscribed to {queueName} queue for {typeof(T).Name}");
+        Console.WriteLine($"Subscribed to {routingKey} for {typeof(T).Name}");
     }
 
     public void StartConsuming()
     {
-        Console.WriteLine("Message consumption started (connection established lazily)");
+        Console.WriteLine("Message consumption started");
     }
 
     public void StopConsuming()
     {
         try
         {
-            if (_channel != null)
-            {
-                _channel.CloseAsync().GetAwaiter().GetResult();
-            }
-
-            if (_connection != null)
-            {
-                _connection.CloseAsync().GetAwaiter().GetResult();
-            }
-
-            Console.WriteLine("RabbitMQ connection closed");
+            _channel?.CloseAsync().GetAwaiter().GetResult();
+            _connection?.CloseAsync().GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {

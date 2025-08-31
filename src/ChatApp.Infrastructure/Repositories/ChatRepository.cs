@@ -14,20 +14,36 @@ public class ChatRepository : IChatRepository
         _dbContext = dbContext;
     }
     
-    public async Task<IEnumerable<ChatMessage>> GetLastMessagesAsync(int count = 50)
+    public async Task<ChatMessage> AddMessageAsync(ChatMessage message)
     {
-        return await _dbContext.ChatMessages
+        _dbContext.ChatMessages.Add(message);
+        await _dbContext.SaveChangesAsync();
+        return message;
+    }
+    
+    public async Task<IEnumerable<ChatMessage>> GetLastMessagesAsync(int count, string? roomId = null)
+    {
+        var query = _dbContext.ChatMessages
             .Include(m => m.User)
+            .AsQueryable();
+
+        if (!string.IsNullOrEmpty(roomId))
+        {
+            query = query.Where(m => m.RoomId == roomId);
+        }
+
+        return await query
             .OrderByDescending(m => m.Timestamp)
             .Take(count)
             .OrderBy(m => m.Timestamp)
             .ToListAsync();
     }
     
-    public async Task<ChatMessage> AddMessageAsync(ChatMessage message)
+    public async Task<IEnumerable<ChatRoom>> GetAvailableRoomsAsync()
     {
-        _dbContext.ChatMessages.Add(message);
-        await _dbContext.SaveChangesAsync();
-        return message;
+        return await _dbContext.ChatRooms
+            .Where(r => r.IsActive)
+            .OrderBy(r => r.Name)
+            .ToListAsync();
     }
 }

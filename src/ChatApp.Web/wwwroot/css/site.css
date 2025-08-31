@@ -12,6 +12,12 @@ html, body { height: 100%; }
     display: inline-block;
 }
 
+/* Active room highlighting */
+.active-room {
+    background-color: rgba(59, 130, 246, 0.08); /* blue-500 at low opacity */
+    border-left: 3px solid #3b82f6; /* blue-500 */
+}
+
 /* Typing indicator styles (kept, but colors overridden by Tailwind text classes in markup) */
 #typingIndicator {
     padding: 5px 15px;
