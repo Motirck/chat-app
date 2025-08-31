@@ -78,7 +78,6 @@ builder.Services.Configure<RabbitMqOptions>(
 // Register services
 builder.Services.AddScoped<IChatRepository, ChatRepository>();
 builder.Services.AddSingleton<IMessageBroker, RabbitMqMessageBroker>();
-builder.Services.AddScoped<IStockService, StockService>();
 
 // Register broadcaster implementation (Web layer)
 builder.Services.AddScoped<IStockQuoteBroadcaster, SignalRStockQuoteBroadcaster>();

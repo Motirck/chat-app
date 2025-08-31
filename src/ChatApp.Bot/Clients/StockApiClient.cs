@@ -1,17 +1,17 @@
-﻿using ChatApp.Core.Configuration;
-using ChatApp.Core.Interfaces;
+﻿using System.Globalization;
+using ChatApp.Bot.Interfaces;
+using ChatApp.Core.Configuration;
 using Flurl;
 using Flurl.Http;
 using Microsoft.Extensions.Options;
-using System.Globalization;
 
-namespace ChatApp.Infrastructure.Services;
+namespace ChatApp.Bot.Clients;
 
-public class StockService : IStockService
+public class StockApiClient : IStockApiClient
 {
     private readonly StockApiOptions _options;
 
-    public StockService(IOptions<StockApiOptions> options)
+    public StockApiClient(IOptions<StockApiOptions> options)
     {
         _options = options.Value;
     }

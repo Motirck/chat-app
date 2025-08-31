@@ -1,4 +1,6 @@
-﻿using ChatApp.Bot.Services;
+﻿using ChatApp.Bot.Clients;
+using ChatApp.Bot.Interfaces;
+using ChatApp.Bot.Services;
 using ChatApp.Core.Configuration;
 using ChatApp.Core.Interfaces;
 using ChatApp.Infrastructure.Services;
@@ -26,7 +28,7 @@ builder.Services.Configure<StockApiOptions>(
 
 // Register services
 builder.Services.AddSingleton<IMessageBroker, RabbitMqMessageBroker>();
-builder.Services.AddScoped<IStockService, StockService>();
+builder.Services.AddScoped<IStockApiClient, StockApiClient>();
 builder.Services.AddHostedService<StockBotService>();
 
 var host = builder.Build();

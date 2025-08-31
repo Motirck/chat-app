@@ -1,4 +1,5 @@
 ﻿using ChatApp.Core.Dtos;
+using ChatApp.Bot.Interfaces;
 using ChatApp.Core.Interfaces;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -8,16 +9,16 @@ namespace ChatApp.Bot.Services;
 public class StockBotService : BackgroundService
 {
     private readonly IMessageBroker _messageBroker;
-    private readonly IStockService _stockService;
+    private readonly IStockApiClient _stockApiClient;
     private readonly ILogger<StockBotService> _logger;
 
     public StockBotService(
         IMessageBroker messageBroker,
-        IStockService stockService,
+        IStockApiClient stockApiClient,
         ILogger<StockBotService> logger)
     {
         _messageBroker = messageBroker;
-        _stockService = stockService;
+        _stockApiClient = stockApiClient;
         _logger = logger;
     }
 
@@ -59,7 +60,7 @@ public class StockBotService : BackgroundService
             _logger.LogInformation("Processing stock command: {StockCode} for user: {Username} in room: {RoomId}",
                 command.StockCode, command.Username, command.RoomId);
 
-            var quoteResult = await _stockService.GetStockQuoteAsync(command.StockCode);
+            var quoteResult = await _stockApiClient.GetStockQuoteAsync(command.StockCode);
 
             string quoteMessage;
             if (!string.IsNullOrEmpty(quoteResult))
@@ -76,7 +77,7 @@ public class StockBotService : BackgroundService
                 _logger.LogWarning("No quote found for stock code: {StockCode} in room {RoomId}", 
                     command.StockCode, command.RoomId);
 
-                await _messageBroker.PublishStockQuoteAsync(command.StockCode, quoteMessage, command.Username, command.RoomId);
+                await _messageBroker.PublishStockQuoteAsync(command.StockCode, quoteMessage, command.Username);
             }
 
             _logger.LogInformation("Published stock quote response for {StockCode} to room {RoomId}",
