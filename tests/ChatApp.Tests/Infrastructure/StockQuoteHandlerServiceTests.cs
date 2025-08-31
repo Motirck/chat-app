@@ -77,7 +77,7 @@ public class StockQuoteHandlerServiceTests
         captured.Should().NotBeNull();
 
         repo.Setup(r => r.AddMessageAsync(It.IsAny<ChatMessage>())).ReturnsAsync((ChatMessage m) => m);
-        broadcaster.Setup(b => b.BroadcastStockQuoteAsync("StockBot", It.Is<string>(q => q.Contains("price")), It.IsAny<DateTime>()))
+        broadcaster.Setup(b => b.BroadcastStockQuoteAsync("StockBot", It.Is<string>(q => q.Contains("price")), It.IsAny<DateTime>(), It.IsAny<string>()))
             .Returns(Task.CompletedTask);
 
         await captured!(new StockQuoteDto { StockCode = "AAPL", Quote = "price is 1", Username = "john", Timestamp = DateTime.UtcNow });

@@ -1,4 +1,5 @@
-﻿using ChatApp.Bot.Services;
+﻿using ChatApp.Bot.Interfaces;
+using ChatApp.Bot.Services;
 using ChatApp.Core.Entities;
 using ChatApp.Core.Interfaces;
 using ChatApp.Infrastructure.Services;
@@ -47,7 +48,7 @@ public class StockCommandFlowTests
     {
         // Arrange: fake broker and services
         var broker = new FakeMessageBroker();
-        var stockService = new Mock<IStockService>();
+        var stockService = new Mock<IStockApiClient>();
         stockService.Setup(s => s.GetStockQuoteAsync("aapl")).ReturnsAsync("AAPL quote is $123.45 per share");
 
         var repo = new Mock<IChatRepository>();
@@ -80,6 +81,6 @@ public class StockCommandFlowTests
         savedMsg.Should().NotBeNull();
         savedMsg!.IsStockQuote.Should().BeTrue();
         savedMsg.Username.Should().Be("StockBot");
-        broadcaster.Verify(b => b.BroadcastStockQuoteAsync("StockBot", It.Is<string>(s => s.Contains("AAPL quote")), It.IsAny<DateTime>()), Times.AtLeastOnce);
+        broadcaster.Verify(b => b.BroadcastStockQuoteAsync("StockBot", It.Is<string>(s => s.Contains("AAPL quote")), It.IsAny<DateTime>(), It.IsAny<string>()), Times.AtLeastOnce);
     }
 }

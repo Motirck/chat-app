@@ -1,12 +1,12 @@
 ﻿using System.Reflection;
+using ChatApp.Bot.Clients;
 using ChatApp.Core.Configuration;
-using ChatApp.Infrastructure.Services;
 using FluentAssertions;
 using Microsoft.Extensions.Options;
 
 namespace ChatApp.Tests.Infrastructure;
 
-public class StockServiceTests
+public class StockApiClientTests
 {
     private static IOptions<StockApiOptions> MakeOptions(string baseUrl)
         => Options.Create(new StockApiOptions
@@ -17,11 +17,11 @@ public class StockServiceTests
             Export = "file"
         });
 
-    [Fact(DisplayName = "StockService: parses valid CSV (ParseStockResponse)"), Trait("Category","Unit"), Trait("Area","Infrastructure")]
+    [Fact(DisplayName = "StockApiClient: parses valid CSV (ParseStockResponse)"), Trait("Category","Unit"), Trait("Area","Infrastructure")]
     public void Parses_Valid_Csv_With_Private_Parser()
     {
         var csv = "Symbol,Date,Time,Open,High,Low,Close,Volume\nAAPL.US,2025-08-29,16:00,100,110,95,123.45,1000\n";
-        var method = typeof(StockService).GetMethod("ParseStockResponse", BindingFlags.NonPublic | BindingFlags.Static);
+        var method = typeof(StockApiClient).GetMethod("ParseStockResponse", BindingFlags.NonPublic | BindingFlags.Static);
         method.Should().NotBeNull();
         var result = method!.Invoke(null, new object?[] { csv, "aapl" }) as string;
         result.Should().NotBeNull();
@@ -30,20 +30,20 @@ public class StockServiceTests
         result.Should().MatchRegex(@"123[\.,]45");
     }
 
-    [Fact(DisplayName = "StockService: malformed CSV returns null (ParseStockResponse)"), Trait("Category","Unit"), Trait("Area","Infrastructure")]
+    [Fact(DisplayName = "StockApiClient: malformed CSV returns null (ParseStockResponse)"), Trait("Category","Unit"), Trait("Area","Infrastructure")]
     public void Malformed_Csv_Returns_Null_With_Private_Parser()
     {
         var badCsv = "Symbol,Date\nHEADER_ONLY\n";
-        var method = typeof(StockService).GetMethod("ParseStockResponse", BindingFlags.NonPublic | BindingFlags.Static);
+        var method = typeof(StockApiClient).GetMethod("ParseStockResponse", BindingFlags.NonPublic | BindingFlags.Static);
         method.Should().NotBeNull();
         var result = method!.Invoke(null, new object?[] { badCsv, "aapl" });
         result.Should().BeNull();
     }
 
-    [Fact(DisplayName = "StockService: http error returns null (invalid BaseUrl)"), Trait("Category","Unit"), Trait("Area","Infrastructure")]
+    [Fact(DisplayName = "StockApiClient: http error returns null (invalid BaseUrl)"), Trait("Category","Unit"), Trait("Area","Infrastructure")]
     public async Task Http_Error_Returns_Null()
     {
-        var svc = new StockService(MakeOptions("not-a-valid-url"));
+        var svc = new StockApiClient(MakeOptions("not-a-valid-url"));
         var res = await svc.GetStockQuoteAsync("aapl");
         res.Should().BeNull();
     }
